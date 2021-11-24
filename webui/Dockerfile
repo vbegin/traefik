@@ -1,16 +1,19 @@
-FROM node:6.9.1
+FROM node:14.16
+# Current Active LTS release according to (https://nodejs.org/en/about/releases/)
 
 ENV WEBUI_DIR /src/webui
+ARG ARG_PLATFORM_URL=https://pilot.traefik.io
+ENV PLATFORM_URL=${ARG_PLATFORM_URL}
 RUN mkdir -p $WEBUI_DIR
 
 COPY package.json $WEBUI_DIR/
-COPY yarn.lock $WEBUI_DIR/
+COPY package-lock.json $WEBUI_DIR/
 
 WORKDIR $WEBUI_DIR
-RUN npm set progress=false
-RUN npm install --quiet --global yarn@0.16.1
-RUN yarn install
+RUN npm install
 
 COPY . $WEBUI_DIR/
 
-EXPOSE 3000 3001 8080
+EXPOSE 8080
+
+RUN npm run lint

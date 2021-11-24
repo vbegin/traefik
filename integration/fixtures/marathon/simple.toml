@@ -1,9 +1,21 @@
-defaultEntryPoints = ["http"]
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[log]
+  level = "DEBUG"
 
 [entryPoints]
-  [entryPoints.http]
-  address = ":8000"
+  [entryPoints.web]
+    address = ":8000"
+  [entryPoints.traefik]
+    address = ":9090"
 
-logLevel = "DEBUG"
+[api]
+  insecure = true
 
-[marathon]
+[providers]
+  [providers.marathon]
+    endpoint = "{{.MarathonURL}}"
+    watch = true
+    exposedByDefault = true

@@ -1,46 +1,31 @@
-################################################################
-# Global configuration
-################################################################
-traefikLogsFile = "traefik.log"
-accessLogsFile = "access.log"
-logLevel = "ERROR"
-defaultEntryPoints = ["http"]
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[log]
+  level = "ERROR"
+  filePath = "traefik.log"
+
+[accessLog]
+  filePath = "access.log"
+
 [entryPoints]
-  [entryPoints.http]
-  address = ":8000"
+  [entryPoints.web]
+    address = ":8000"
+  [entryPoints.frontendRedirect]
+    address = ":8005"
+  [entryPoints.httpFrontendAuth]
+    address = ":8006"
+  [entryPoints.httpRateLimit]
+    address = ":8007"
+  [entryPoints.digestAuth]
+    address = ":8008"
 
-################################################################
-# Web configuration backend
-################################################################
-[web]
-address = ":7888"
+[api]
+  insecure = true
 
-################################################################
-# File configuration backend
-################################################################
-[file]
-
-################################################################
-# rules
-################################################################
- [backends]
-   [backends.backend1]
-     [backends.backend1.servers.server1]
-       url = "http://127.0.0.1:8081"
-   [backends.backend2]
-     [backends.backend2.LoadBalancer]
-       method = "drr"
-     [backends.backend2.servers.server1]
-       url = "http://127.0.0.1:8082"
-     [backends.backend2.servers.server2]
-       url = "http://127.0.0.1:8083"
-  [frontends]
-   [frontends.frontend1]
-   backend = "backend1"
-     [frontends.frontend1.routes.test_1]
-     rule = "Path: /test1"
-   [frontends.frontend2]
-   backend = "backend2"
-   passHostHeader = true
-     [frontends.frontend2.routes.test_2]
-     rule = "Path: /test2"
+[providers]
+  [providers.docker]
+    exposedByDefault = false
+    defaultRule = "Host(`{{ normalize .Name }}.docker.local`)"
+    watch = true
