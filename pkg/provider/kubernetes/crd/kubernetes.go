@@ -45,7 +45,7 @@ const (
 // Provider holds configurations of the provider.
 type Provider struct {
 	Endpoint                  string          `description:"Kubernetes server endpoint (required for external cluster client)." json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Token                     string          `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty"`
+	Token                     string          `description:"Kubernetes bearer token (not needed for in-cluster client)." json:"token,omitempty" toml:"token,omitempty" yaml:"token,omitempty" loggable:"false"`
 	CertAuthFilePath          string          `description:"Kubernetes certificate authority file path (not needed for in-cluster client)." json:"certAuthFilePath,omitempty" toml:"certAuthFilePath,omitempty" yaml:"certAuthFilePath,omitempty"`
 	Namespaces                []string        `description:"Kubernetes namespaces." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty" export:"true"`
 	AllowCrossNamespace       bool            `description:"Allow cross namespace resource reference." json:"allowCrossNamespace,omitempty" toml:"allowCrossNamespace,omitempty" yaml:"allowCrossNamespace,omitempty" export:"true"`
@@ -273,7 +273,8 @@ func (p *Provider) loadConfigurationFromCRD(ctx context.Context, client Client) 
 		id := provider.Normalize(makeID(middlewareTCP.Namespace, middlewareTCP.Name))
 
 		conf.TCP.Middlewares[id] = &dynamic.TCPMiddleware{
-			IPWhiteList: middlewareTCP.Spec.IPWhiteList,
+			InFlightConn: middlewareTCP.Spec.InFlightConn,
+			IPWhiteList:  middlewareTCP.Spec.IPWhiteList,
 		}
 	}
 
@@ -440,6 +441,10 @@ func createRateLimitMiddleware(rateLimit *v1alpha1.RateLimit) (*dynamic.RateLimi
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if rateLimit.SourceCriterion != nil {
+		rl.SourceCriterion = rateLimit.SourceCriterion
 	}
 
 	return rl, nil

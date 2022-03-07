@@ -160,6 +160,8 @@ providers:
     cache: true
     exposedByDefault: true
     defaultRule: foobar
+    namespace: foobar
+    watch: true
     endpoint:
       address: foobar
       scheme: foobar
@@ -194,6 +196,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -207,6 +211,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -220,6 +226,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -233,6 +241,8 @@ providers:
     - foobar
     username: foobar
     password: foobar
+    namespace: foobar
+    token: foobar
     tls:
       ca: foobar
       caOptional: true
@@ -293,6 +303,18 @@ metrics:
     addServicesLabels: true
     additionalLabels:
       foobar: foobar
+  influxDB2:
+    address: foobar
+    token: foobar
+    pushInterval: 42s
+    org: foobar
+    bucket: foobar
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    additionalLabels:
+      foobar: foobar
+
 ping:
   entryPoint: foobar
   manualRouting: true

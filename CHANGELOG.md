@@ -1,3 +1,172 @@
+## [v2.6.1](https://github.com/traefik/traefik/tree/v2.6.1) (2022-02-14)
+[All Commits](https://github.com/traefik/traefik/compare/v2.6.0...v2.6.1)
+
+**Bug fixes:**
+- **[acme]** Add domain to HTTP challenge errors ([#8740](https://github.com/traefik/traefik/pull/8740) by [ldez](https://github.com/ldez))
+- **[metrics]** Fix metrics bucket key high cardinality ([#8761](https://github.com/traefik/traefik/pull/8761) by [tomMoulard](https://github.com/tomMoulard))
+- **[middleware,tls]** Use CNAME for SNI check on host header ([#8773](https://github.com/traefik/traefik/pull/8773) by [ldez](https://github.com/ldez))
+- **[middleware,tracing]** Rename Datadog span tags ([#8323](https://github.com/traefik/traefik/pull/8323) by [luckielordie](https://github.com/luckielordie))
+- **[tls]** Apply the same approach as the rules system on the TLS configuration choice ([#8764](https://github.com/traefik/traefik/pull/8764) by [ldez](https://github.com/ldez))
+
+**Documentation:**
+- **[acme]** Add Hurricane Electric to acme documentation ([#8746](https://github.com/traefik/traefik/pull/8746) by [vladshub](https://github.com/vladshub))
+- **[acme]** Clarify that ACME challenge is mandatory ([#8739](https://github.com/traefik/traefik/pull/8739) by [mpl](https://github.com/mpl))
+- **[http3]** Explain a bit more around enabling HTTP3 ([#8731](https://github.com/traefik/traefik/pull/8731) by [SantoDE](https://github.com/SantoDE))
+- **[metrics]** Fix mixups in metrics documentation ([#8752](https://github.com/traefik/traefik/pull/8752) by [tomMoulard](https://github.com/tomMoulard))
+- **[middleware,k8s/crd]** Fix Kubernetes TCP examples ([#8759](https://github.com/traefik/traefik/pull/8759) by [sylr](https://github.com/sylr))
+
+## [v2.6.0](https://github.com/traefik/traefik/tree/v2.6.0) (2022-01-24)
+[All Commits](https://github.com/traefik/traefik/compare/v2.5.0-rc1...v2.6.0)
+
+**Enhancements:**
+- **[acme]** Allow configuration of ACME certificates duration ([#8046](https://github.com/traefik/traefik/pull/8046) by [pmontepagano](https://github.com/pmontepagano))
+- **[consul,consulcatalog]** Support consul enterprise namespaces in consul catalog provider ([#8592](https://github.com/traefik/traefik/pull/8592) by [kevinpollet](https://github.com/kevinpollet))
+- **[k8s,k8s/gatewayapi]** Update gateway api provider to v1alpha2 ([#8535](https://github.com/traefik/traefik/pull/8535) by [kevinpollet](https://github.com/kevinpollet))
+- **[k8s,k8s/gatewayapi]** Support gateway api RouteNamespaces ([#8299](https://github.com/traefik/traefik/pull/8299) by [tomMoulard](https://github.com/tomMoulard))
+- **[k8s/crd]** Support Kubernetes basic-auth secrets ([#8189](https://github.com/traefik/traefik/pull/8189) by [dtomcej](https://github.com/dtomcej))
+- **[metrics]** Add configurable tags to influxdb metrics ([#8308](https://github.com/traefik/traefik/pull/8308) by [Tetha](https://github.com/Tetha))
+- **[metrics]** Add prefix to datadog metrics ([#8234](https://github.com/traefik/traefik/pull/8234) by [fredwangwang](https://github.com/fredwangwang))
+- **[middleware,tcp]** Add in flight connection middleware ([#8429](https://github.com/traefik/traefik/pull/8429) by [tomMoulard](https://github.com/tomMoulard))
+- **[middleware]** Add Organizational Unit to passtlscert middleware ([#7958](https://github.com/traefik/traefik/pull/7958) by [FernFerret](https://github.com/FernFerret))
+- **[middleware]** Allow configuration of minimum body size for compress middleware ([#8239](https://github.com/traefik/traefik/pull/8239) by [lus](https://github.com/lus))
+- **[middleware]** Ceil Retry-After value in the rate-limit middleware ([#8581](https://github.com/traefik/traefik/pull/8581) by [pyaillet](https://github.com/pyaillet))
+- **[middleware]** Refactor Exponential Backoff ([#7519](https://github.com/traefik/traefik/pull/7519) by [danieladams456](https://github.com/danieladams456))
+- **[server,k8s/crd,k8s]** Allow configuration of HTTP/2 readIdleTimeout and pingTimeout ([#8539](https://github.com/traefik/traefik/pull/8539) by [tomMoulard](https://github.com/tomMoulard))
+- **[server]** Allow configuration of advertised port for HTTP/3 ([#8131](https://github.com/traefik/traefik/pull/8131) by [valerauko](https://github.com/valerauko))
+- **[tracing]** Upgrade Instana tracer and make process profiling configurable ([#8334](https://github.com/traefik/traefik/pull/8334) by [andriikushch](https://github.com/andriikushch))
+
+**Bug fixes:**
+- **[consul,kv]** Support Consul KV Enterprise namespaces ([#8692](https://github.com/traefik/traefik/pull/8692) by [kevinpollet](https://github.com/kevinpollet))
+- **[consul]** Support token authentication for Consul KV  ([#8712](https://github.com/traefik/traefik/pull/8712) by [kevinpollet](https://github.com/kevinpollet))
+- **[consulcatalog]** Configure Consul Catalog namespace at client level ([#8725](https://github.com/traefik/traefik/pull/8725) by [kevinpollet](https://github.com/kevinpollet))
+- **[tracing]** Upgrade Instana tracer dependency ([#8687](https://github.com/traefik/traefik/pull/8687) by [andriikushch](https://github.com/andriikushch))
+- **[logs]** Redact credentials before logging ([#8699](https://github.com/traefik/traefik/pull/8699) by [ibrahimalihc](https://github.com/ibrahimalihc))
+
+**Misc:**
+- Merge current v2.5 into v2.6 ([#8720](https://github.com/traefik/traefik/pull/8720) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8717](https://github.com/traefik/traefik/pull/8717) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8714](https://github.com/traefik/traefik/pull/8714) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into v2.6 ([#8688](https://github.com/traefik/traefik/pull/8688) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8664](https://github.com/traefik/traefik/pull/8664) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8651](https://github.com/traefik/traefik/pull/8651) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8645](https://github.com/traefik/traefik/pull/8645) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8609](https://github.com/traefik/traefik/pull/8609) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8563](https://github.com/traefik/traefik/pull/8563) by [kevinpollet](https://github.com/kevinpollet))
+- Merge current v2.5 into master ([#8498](https://github.com/traefik/traefik/pull/8498) by [kevinpollet](https://github.com/kevinpollet))
+- Merge current v2.5 into master ([#8461](https://github.com/traefik/traefik/pull/8461) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8435](https://github.com/traefik/traefik/pull/8435) by [jbdoumenjou](https://github.com/jbdoumenjou))
+- Merge current v2.5 into master ([#8419](https://github.com/traefik/traefik/pull/8419) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8411](https://github.com/traefik/traefik/pull/8411) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8316](https://github.com/traefik/traefik/pull/8316) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8298](https://github.com/traefik/traefik/pull/8298) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8289](https://github.com/traefik/traefik/pull/8289) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8241](https://github.com/traefik/traefik/pull/8241) by [rtribotte](https://github.com/rtribotte))
+
+## [v2.6.0-rc3](https://github.com/traefik/traefik/tree/v2.6.0-rc3) (2022-01-20)
+[All Commits](https://github.com/traefik/traefik/compare/v2.6.0-rc2...v2.6.0-rc3)
+
+**Bug fixes:**
+- **[consul]** Support token authentication for Consul KV  ([#8712](https://github.com/traefik/traefik/pull/8712) by [kevinpollet](https://github.com/kevinpollet))
+
+**Misc:**
+- Merge current v2.5 into v2.6 ([#8717](https://github.com/traefik/traefik/pull/8717) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8714](https://github.com/traefik/traefik/pull/8714) by [rtribotte](https://github.com/rtribotte))
+
+## [v2.5.7](https://github.com/traefik/traefik/tree/v2.5.7) (2022-01-20)
+[All Commits](https://github.com/traefik/traefik/compare/v2.5.6...v2.5.7)
+
+**Bug fixes:**
+- **[acme]** Update go-acme/lego to v4.6.0 ([#8716](https://github.com/traefik/traefik/pull/8716) by [ldez](https://github.com/ldez))
+- **[logs]** Adjust log level from info to debug ([#8718](https://github.com/traefik/traefik/pull/8718) by [tomMoulard](https://github.com/tomMoulard))
+- **[plugins]** Fix middleware plugins memory leak ([#8702](https://github.com/traefik/traefik/pull/8702) by [ldez](https://github.com/ldez))
+- **[server]** Mitigate memory leak ([#8706](https://github.com/traefik/traefik/pull/8706) by [mpl](https://github.com/mpl))
+- **[webui,middleware]** Fix middleware regexp&#39;s display ([#8697](https://github.com/traefik/traefik/pull/8697) by [tomMoulard](https://github.com/tomMoulard))
+
+**Documentation:**
+- **[http]** Fix HTTP provider endpoint config example  ([#8715](https://github.com/traefik/traefik/pull/8715) by [kevinpollet](https://github.com/kevinpollet))
+- **[k8s]** Remove typo in Kubernetes providers labelSelector examples ([#8676](https://github.com/traefik/traefik/pull/8676) by [colinwilson](https://github.com/colinwilson))
+- **[rules]** Improve regexp matcher documentation ([#8686](https://github.com/traefik/traefik/pull/8686) by [Hades32](https://github.com/Hades32))
+- **[tracing]** Fix broken jaeger documentation link ([#8665](https://github.com/traefik/traefik/pull/8665) by [tomMoulard](https://github.com/tomMoulard))
+- Update copyright for 2022 ([#8679](https://github.com/traefik/traefik/pull/8679) by [kevinpollet](https://github.com/kevinpollet))
+
+## [v2.6.0-rc2](https://github.com/traefik/traefik/tree/v2.6.0-rc2) (2022-01-12)
+[All Commits](https://github.com/traefik/traefik/compare/v2.6.0-rc1...v2.6.0-rc2)
+
+**Bug fixes:**
+- **[consul,kv]** Support Consul KV Enterprise namespaces ([#8692](https://github.com/traefik/traefik/pull/8692) by [kevinpollet](https://github.com/kevinpollet))
+- **[tracing]** Upgrade Instana tracer dependency ([#8687](https://github.com/traefik/traefik/pull/8687) by [andriikushch](https://github.com/andriikushch))
+
+**Misc:**
+- Merge current v2.5 into v2.6 ([#8688](https://github.com/traefik/traefik/pull/8688) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8664](https://github.com/traefik/traefik/pull/8664) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into v2.6 ([#8651](https://github.com/traefik/traefik/pull/8651) by [tomMoulard](https://github.com/tomMoulard))
+
+## [v2.5.6](https://github.com/traefik/traefik/tree/v2.5.6) (2021-12-22)
+[All Commits](https://github.com/traefik/traefik/compare/v2.5.5...v2.5.6)
+
+**Bug fixes:**
+- **[middleware]** Process all X-Forwarded-For headers in the request ([#8596](https://github.com/traefik/traefik/pull/8596) by [kevinpollet](https://github.com/kevinpollet))
+- **[plugins]** Update Yaegi to v0.11.2 ([#8650](https://github.com/traefik/traefik/pull/8650) by [ldez](https://github.com/ldez))
+- **[server]** Update golang.org/x/net dependency version ([#8635](https://github.com/traefik/traefik/pull/8635) by [kevinpollet](https://github.com/kevinpollet))
+
+**Documentation:**
+- **[api]** Add missing API endpoints documentation ([#8649](https://github.com/traefik/traefik/pull/8649) by [ichxxx](https://github.com/ichxxx))
+- **[middleware]** Fix passTLSClientCert CRD example name ([#8637](https://github.com/traefik/traefik/pull/8637) by [ddtmachado](https://github.com/ddtmachado))
+- **[middleware]** Correct documentation in middleware overview ([#8636](https://github.com/traefik/traefik/pull/8636) by [Alestrix](https://github.com/Alestrix))
+
+## [v2.6.0-rc1](https://github.com/traefik/traefik/tree/v2.6.0-rc1) (2021-12-20)
+[All Commits](https://github.com/traefik/traefik/compare/v2.5.0-rc1...v2.6.0-rc1)
+
+**Enhancements:**
+- **[acme]** Allow configuration of ACME certificates duration ([#8046](https://github.com/traefik/traefik/pull/8046) by [pmontepagano](https://github.com/pmontepagano))
+- **[consul,consulcatalog]** Support consul enterprise namespaces in consul catalog provider ([#8592](https://github.com/traefik/traefik/pull/8592) by [kevinpollet](https://github.com/kevinpollet))
+- **[k8s,k8s/gatewayapi]** Update gateway api provider to v1alpha2 ([#8535](https://github.com/traefik/traefik/pull/8535) by [kevinpollet](https://github.com/kevinpollet))
+- **[k8s,k8s/gatewayapi]** Support gateway api RouteNamespaces ([#8299](https://github.com/traefik/traefik/pull/8299) by [tomMoulard](https://github.com/tomMoulard))
+- **[k8s/crd]** Support Kubernetes basic-auth secrets ([#8189](https://github.com/traefik/traefik/pull/8189) by [dtomcej](https://github.com/dtomcej))
+- **[metrics]** Add configurable tags to influxdb metrics ([#8308](https://github.com/traefik/traefik/pull/8308) by [Tetha](https://github.com/Tetha))
+- **[metrics]** Add prefix to datadog metrics ([#8234](https://github.com/traefik/traefik/pull/8234) by [fredwangwang](https://github.com/fredwangwang))
+- **[middleware,tcp]** Add in flight connection middleware ([#8429](https://github.com/traefik/traefik/pull/8429) by [tomMoulard](https://github.com/tomMoulard))
+- **[middleware]** Add Organizational Unit to passtlscert middleware ([#7958](https://github.com/traefik/traefik/pull/7958) by [FernFerret](https://github.com/FernFerret))
+- **[middleware]** Allow configuration of minimum body size for compress middleware ([#8239](https://github.com/traefik/traefik/pull/8239) by [lus](https://github.com/lus))
+- **[middleware]** Ceil Retry-After value in the rate-limit middleware ([#8581](https://github.com/traefik/traefik/pull/8581) by [pyaillet](https://github.com/pyaillet))
+- **[middleware]** Refactor Exponential Backoff ([#7519](https://github.com/traefik/traefik/pull/7519) by [danieladams456](https://github.com/danieladams456))
+- **[server,k8s/crd,k8s]** Allow configuration of HTTP/2 readIdleTimeout and pingTimeout ([#8539](https://github.com/traefik/traefik/pull/8539) by [tomMoulard](https://github.com/tomMoulard))
+- **[server]** Allow configuration of advertised port for HTTP/3 ([#8131](https://github.com/traefik/traefik/pull/8131) by [valerauko](https://github.com/valerauko))
+- **[tracing]** Upgrade Instana tracer and make process profiling configurable ([#8334](https://github.com/traefik/traefik/pull/8334) by [andriikushch](https://github.com/andriikushch))
+
+**Misc:**
+- Merge current v2.5 into master ([#8609](https://github.com/traefik/traefik/pull/8609) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8563](https://github.com/traefik/traefik/pull/8563) by [kevinpollet](https://github.com/kevinpollet))
+- Merge current v2.5 into master ([#8498](https://github.com/traefik/traefik/pull/8498) by [kevinpollet](https://github.com/kevinpollet))
+- Merge current v2.5 into master ([#8461](https://github.com/traefik/traefik/pull/8461) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8435](https://github.com/traefik/traefik/pull/8435) by [jbdoumenjou](https://github.com/jbdoumenjou))
+- Merge current v2.5 into master ([#8419](https://github.com/traefik/traefik/pull/8419) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8411](https://github.com/traefik/traefik/pull/8411) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8316](https://github.com/traefik/traefik/pull/8316) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8298](https://github.com/traefik/traefik/pull/8298) by [tomMoulard](https://github.com/tomMoulard))
+- Merge current v2.5 into master ([#8289](https://github.com/traefik/traefik/pull/8289) by [rtribotte](https://github.com/rtribotte))
+- Merge current v2.5 into master ([#8241](https://github.com/traefik/traefik/pull/8241) by [rtribotte](https://github.com/rtribotte))
+
+## [v2.5.5](https://github.com/traefik/traefik/tree/v2.5.5) (2021-12-09)
+[All Commits](https://github.com/traefik/traefik/compare/v2.5.4...v2.5.5)
+
+**Bug fixes:**
+- **[acme]** Update go-acme/lego to v4.5.3 ([#8607](https://github.com/traefik/traefik/pull/8607) by [lippertmarkus](https://github.com/lippertmarkus))
+- **[k8s/crd,k8s]** fix: propagate source criterion config to RateLimit middleware in Kubernetes CRD ([#8591](https://github.com/traefik/traefik/pull/8591) by [rbailly-talend](https://github.com/rbailly-talend))
+- **[plugins]** plugins: start the go routine before calling Provide ([#8620](https://github.com/traefik/traefik/pull/8620) by [ldez](https://github.com/ldez))
+- **[plugins]** Update yaegi to v0.11.1 ([#8600](https://github.com/traefik/traefik/pull/8600) by [tomMoulard](https://github.com/tomMoulard))
+- **[plugins]** Update yaegi v0.11.0 ([#8564](https://github.com/traefik/traefik/pull/8564) by [ldez](https://github.com/ldez))
+- **[udp]** fix: increase UDP read buffer length to max datagram size ([#8560](https://github.com/traefik/traefik/pull/8560) by [kevinpollet](https://github.com/kevinpollet))
+
+**Documentation:**
+- **[consul]** docs: removing typo in consul-catalog provider doc ([#8603](https://github.com/traefik/traefik/pull/8603) by [tomMoulard](https://github.com/tomMoulard))
+- **[metrics]** docs: remove misleading metrics overview configuration ([#8579](https://github.com/traefik/traefik/pull/8579) by [gsilvapt](https://github.com/gsilvapt))
+- **[middleware]** docs: align docker configuration example notes in basicauth HTTP middleware ([#8615](https://github.com/traefik/traefik/pull/8615) by [tomMoulard](https://github.com/tomMoulard))
+- **[service]** docs: health check use readiness probe in k8s ([#8575](https://github.com/traefik/traefik/pull/8575) by [Vampouille](https://github.com/Vampouille))
+- **[tls]** docs: uniformize client TLS config documentation ([#8602](https://github.com/traefik/traefik/pull/8602) by [kevinpollet](https://github.com/kevinpollet))
+- Update CODE_OF_CONDUCT.md ([#8619](https://github.com/traefik/traefik/pull/8619) by [tfny](https://github.com/tfny))
+- fixed minor spelling error in Regexp Syntax section ([#8565](https://github.com/traefik/traefik/pull/8565) by [kerrsmith](https://github.com/kerrsmith))
+
 ## [v2.5.4](https://github.com/traefik/traefik/tree/v2.5.4) (2021-11-08)
 [All Commits](https://github.com/traefik/traefik/compare/v2.5.3...v2.5.4)
 
@@ -1614,7 +1783,7 @@ Same changelog as v2.0.3.
 - fix: remove extra backtick from routers docs ([#5572](https://github.com/traefik/traefik/pull/5572) by [serpi90](https://github.com/serpi90))
 - document providersThrottleDuration ([#5519](https://github.com/traefik/traefik/pull/5519) by [mpl](https://github.com/mpl))
 - Add a response forwarding section to the service documentation  ([#5517](https://github.com/traefik/traefik/pull/5517) by [jbdoumenjou](https://github.com/jbdoumenjou))
-- Change instances of &#34;dymanic&#34; to &#34;dynamic&#34; ([#5504](https://github.com/traefik/traefik/pull/5504) by [dat-gitto-kid](https://github.com/dat-gitto-kid))
+- Change instances of &#34;dynamic&#34; to &#34;dynamic&#34; ([#5504](https://github.com/traefik/traefik/pull/5504) by [dat-gitto-kid](https://github.com/dat-gitto-kid))
 - Add the pass host header section to the services documentation ([#5500](https://github.com/traefik/traefik/pull/5500) by [jbdoumenjou](https://github.com/jbdoumenjou))
 - fix misspelling on documentation landing page ([#5613](https://github.com/traefik/traefik/pull/5613) by [cthompson527](https://github.com/cthompson527))
 
@@ -2606,7 +2775,7 @@ Same changelog as v2.0.3.
 - **[healthcheck]** Query params in health check ([#4188](https://github.com/traefik/traefik/pull/4188) by [mmatur](https://github.com/mmatur))
 - **[metrics]** Upgraded DD APM library ([#4189](https://github.com/traefik/traefik/pull/4189) by [aantono](https://github.com/aantono))
 - **[middleware]** Fix ssl force host secure middleware ([#4138](https://github.com/traefik/traefik/pull/4138) by [mmatur](https://github.com/mmatur))
-- **[oxy]** Fix unannonced trailers problem when body is empty ([#4258](https://github.com/traefik/traefik/pull/4258) by [juliens](https://github.com/juliens))
+- **[oxy]** Fix unannounced trailers problem when body is empty ([#4258](https://github.com/traefik/traefik/pull/4258) by [juliens](https://github.com/juliens))
 - **[provider,server]** Log configuration errors from providers and keeps listening ([#4230](https://github.com/traefik/traefik/pull/4230) by [geraldcroes](https://github.com/geraldcroes))
 - **[tls]** Implement Case-insensitive SNI matching ([#4132](https://github.com/traefik/traefik/pull/4132) by [dtomcej](https://github.com/dtomcej))
 - Use ParseInt instead of Atoi for parsing durations ([#4263](https://github.com/traefik/traefik/pull/4263) by [mmatur](https://github.com/mmatur))
@@ -3750,7 +3919,7 @@ Same changelog as v2.0.3.
 - **[etcd]** Fix typo in examples ([#2446](https://github.com/traefik/traefik/pull/2446) by [dahefanteng](https://github.com/dahefanteng))
 - **[k8s]** Add note to Kubernetes RBAC docs about RoleBindings and namespaces ([#2498](https://github.com/traefik/traefik/pull/2498) by [jmara](https://github.com/jmara))
 - **[k8s]** k8s guide: Leave note about assumed DaemonSet usage. ([#2634](https://github.com/traefik/traefik/pull/2634) by [timoreimann](https://github.com/timoreimann))
-- **[k8s]** Apply various contentual and stylish improvements to the k8s docs. ([#2677](https://github.com/traefik/traefik/pull/2677) by [timoreimann](https://github.com/timoreimann))
+- **[k8s]** Apply various contextual and stylish improvements to the k8s docs. ([#2677](https://github.com/traefik/traefik/pull/2677) by [timoreimann](https://github.com/timoreimann))
 - **[k8s]** Document rewrite-target annotation. ([#2676](https://github.com/traefik/traefik/pull/2676) by [timoreimann](https://github.com/timoreimann))
 - **[k8s]** Remove obsolete links in k8s docs ([#2465](https://github.com/traefik/traefik/pull/2465) by [marco-jantke](https://github.com/marco-jantke))
 - **[k8s]** Document filename parameter for Kubernetes. ([#2464](https://github.com/traefik/traefik/pull/2464) by [timoreimann](https://github.com/timoreimann))
@@ -3817,7 +3986,7 @@ Same changelog as v2.0.3.
 
 **Documentation:**
 - **[cluster]** Add a clustering example with Docker Swarm ([#2589](https://github.com/traefik/traefik/pull/2589) by [jmaitrehenry](https://github.com/jmaitrehenry))
-- **[k8s]** Apply various contentual and stylish improvements to the k8s docs. ([#2677](https://github.com/traefik/traefik/pull/2677) by [timoreimann](https://github.com/timoreimann))
+- **[k8s]** Apply various contextual and stylish improvements to the k8s docs. ([#2677](https://github.com/traefik/traefik/pull/2677) by [timoreimann](https://github.com/timoreimann))
 - **[k8s]** Document rewrite-target annotation. ([#2676](https://github.com/traefik/traefik/pull/2676) by [timoreimann](https://github.com/timoreimann))
 - **[provider,webui]** Fix redirect problem on dashboard + docs/tests on [web] ([#2686](https://github.com/traefik/traefik/pull/2686) by [Juliens](https://github.com/Juliens))
 
@@ -4527,7 +4696,7 @@ Same changelog as v2.0.3.
 [All Commits](https://github.com/traefik/traefik/compare/v1.3.7...v1.3.8)
 
 **Bug fixes:**
-- **[middleware]** Compress and Webscocket ([#2079](https://github.com/traefik/traefik/pull/2079) by [ldez](https://github.com/ldez))
+- **[middleware]** Compress and Websocket ([#2079](https://github.com/traefik/traefik/pull/2079) by [ldez](https://github.com/ldez))
 
 ## [v1.3.7](https://github.com/traefik/traefik/tree/v1.3.7) (2017-08-25)
 [All Commits](https://github.com/traefik/traefik/compare/v1.3.6...v1.3.7)
@@ -4710,7 +4879,7 @@ Same changelog as v2.0.3.
 
 **Documentation:**
 - [#1578](https://github.com/traefik/traefik/issues/1578) Add Marathon guide. ([Stibbons](https://github.com/Stibbons))
-- [#1602](https://github.com/traefik/traefik/issues/1602) Re Orginise k8s docs to make 1.6 usage easier ([errm](https://github.com/errm))
+- [#1602](https://github.com/traefik/traefik/issues/1602) Re Organise k8s docs to make 1.6 usage easier ([errm](https://github.com/errm))
 - [#1642](https://github.com/traefik/traefik/issues/1642) Update changelog ([ldez](https://github.com/ldez))
 
 ## [v1.3.0-rc2](https://github.com/traefik/traefik/tree/v1.3.0-rc2) (2017-05-16)
@@ -4863,7 +5032,7 @@ Same changelog as v2.0.3.
 - Bump go-rancher version [\#1219](https://github.com/traefik/traefik/pull/1219) ([SantoDE](https://github.com/SantoDE))
 - Chunk taskArns into groups of 100 [\#1209](https://github.com/traefik/traefik/pull/1209) ([owen](https://github.com/owen))
 - Prepare release v1.2.0 rc2 [\#1204](https://github.com/traefik/traefik/pull/1204) ([emilevauge](https://github.com/emilevauge))
-- Revert "Ensure that we don't add balancees with no health check runs … [\#1198](https://github.com/traefik/traefik/pull/1198) ([jangie](https://github.com/jangie))
+- Revert "Ensure that we don't add balances with no health check runs … [\#1198](https://github.com/traefik/traefik/pull/1198) ([jangie](https://github.com/jangie))
 - Small fixes and improvements [\#1173](https://github.com/traefik/traefik/pull/1173) ([SantoDE](https://github.com/SantoDE))
 - Fix docker issues with global and dead tasks [\#1167](https://github.com/traefik/traefik/pull/1167) ([christopherobin](https://github.com/christopherobin))
 - Better ECS error checking [\#1143](https://github.com/traefik/traefik/pull/1143) ([lpetre](https://github.com/lpetre))
@@ -4889,7 +5058,7 @@ Same changelog as v2.0.3.
 - Add an ECS provider [\#1088](https://github.com/traefik/traefik/pull/1088) ([lpetre](https://github.com/lpetre))
 - Update comment to reflect the code [\#1087](https://github.com/traefik/traefik/pull/1087) ([np](https://github.com/np))
 - update NYTimes/gziphandler fixes \#1059 [\#1084](https://github.com/traefik/traefik/pull/1084) ([JamesKyburz](https://github.com/JamesKyburz))
-- Ensure that we don't add balancees with no health check runs if there is a health check defined on it [\#1080](https://github.com/traefik/traefik/pull/1080) ([jangie](https://github.com/jangie))
+- Ensure that we don't add balances with no health check runs if there is a health check defined on it [\#1080](https://github.com/traefik/traefik/pull/1080) ([jangie](https://github.com/jangie))
 - Add FreeBSD & OpenBSD to crossbinary [\#1078](https://github.com/traefik/traefik/pull/1078) ([geoffgarside](https://github.com/geoffgarside))
 - Fix metrics for multiple entry points [\#1071](https://github.com/traefik/traefik/pull/1071) ([matevzmihalic](https://github.com/matevzmihalic))
 - Allow setting load balancer method and sticky using service annotations [\#1068](https://github.com/traefik/traefik/pull/1068) ([bakins](https://github.com/bakins))
@@ -4945,7 +5114,7 @@ Same changelog as v2.0.3.
 - Bind to specific ip address [\#1193](https://github.com/traefik/traefik/issues/1193)
 - DNS01 challenge use the wrong zone through route53 [\#1192](https://github.com/traefik/traefik/issues/1192)
 - Reverse proxy https to http backends fails [\#1180](https://github.com/traefik/traefik/issues/1180)
-- Swarm Mode + Letsecrypt + KV Store [\#1176](https://github.com/traefik/traefik/issues/1176)
+- Swarm Mode + Letsencrypt + KV Store [\#1176](https://github.com/traefik/traefik/issues/1176)
 - docker deploy -c example.yml    e [\#1169](https://github.com/traefik/traefik/issues/1169)
 - Traefik not finding dynamically added services \(Docker Swarm Mode\) [\#1168](https://github.com/traefik/traefik/issues/1168)
 - Traefik with Kubernetes backend - keep getting 401 on all GET requests to kube-apiserver [\#1166](https://github.com/traefik/traefik/issues/1166)
@@ -4963,7 +5132,7 @@ Same changelog as v2.0.3.
 
 **Merged pull requests:**
 
-- Revert "Ensure that we don't add balancees with no health check runs … [\#1198](https://github.com/traefik/traefik/pull/1198) ([jangie](https://github.com/jangie))
+- Revert "Ensure that we don't add balances with no health check runs … [\#1198](https://github.com/traefik/traefik/pull/1198) ([jangie](https://github.com/jangie))
 - Small fixes and improvements [\#1173](https://github.com/traefik/traefik/pull/1173) ([SantoDE](https://github.com/SantoDE))
 - Fix docker issues with global and dead tasks [\#1167](https://github.com/traefik/traefik/pull/1167) ([christopherobin](https://github.com/christopherobin))
 - Better ECS error checking [\#1143](https://github.com/traefik/traefik/pull/1143) ([lpetre](https://github.com/lpetre))
@@ -5034,7 +5203,7 @@ Same changelog as v2.0.3.
 - Add an ECS provider [\#1088](https://github.com/traefik/traefik/pull/1088) ([lpetre](https://github.com/lpetre))
 - Update comment to reflect the code [\#1087](https://github.com/traefik/traefik/pull/1087) ([np](https://github.com/np))
 - update NYTimes/gziphandler fixes \#1059 [\#1084](https://github.com/traefik/traefik/pull/1084) ([JamesKyburz](https://github.com/JamesKyburz))
-- Ensure that we don't add balancees with no health check runs if there is a health check defined on it [\#1080](https://github.com/traefik/traefik/pull/1080) ([jangie](https://github.com/jangie))
+- Ensure that we don't add balances with no health check runs if there is a health check defined on it [\#1080](https://github.com/traefik/traefik/pull/1080) ([jangie](https://github.com/jangie))
 - Add FreeBSD & OpenBSD to crossbinary [\#1078](https://github.com/traefik/traefik/pull/1078) ([geoffgarside](https://github.com/geoffgarside))
 - Fix metrics for multiple entry points [\#1071](https://github.com/traefik/traefik/pull/1071) ([matevzmihalic](https://github.com/matevzmihalic))
 - Allow setting load balancer method and sticky using service annotations [\#1068](https://github.com/traefik/traefik/pull/1068) ([bakins](https://github.com/bakins))
@@ -5213,7 +5382,7 @@ Same changelog as v2.0.3.
 - Documented ProvidersThrottleDuration value is invalid [\#741](https://github.com/traefik/traefik/issues/741)
 - Sensible configuration for consulCatalog [\#737](https://github.com/traefik/traefik/issues/737)
 - Traefik ignoring container listening in more than one TCP port [\#734](https://github.com/traefik/traefik/issues/734)
-- Loadbalaning issues with traefik and Docker Swarm cluster [\#730](https://github.com/traefik/traefik/issues/730)
+- Loadbalancing issues with traefik and Docker Swarm cluster [\#730](https://github.com/traefik/traefik/issues/730)
 - issues with marathon app ids containing a dot [\#726](https://github.com/traefik/traefik/issues/726)
 - Error when using HA acme in kubernetes with etcd [\#725](https://github.com/traefik/traefik/issues/725)
 - \[Docker swarm mode\] No round robin when using service [\#718](https://github.com/traefik/traefik/issues/718)
@@ -5252,7 +5421,7 @@ Same changelog as v2.0.3.
 - Update docs with new Mesos provider [\#548](https://github.com/traefik/traefik/issues/548)
 - Can I use Traefik without a domain name? [\#539](https://github.com/traefik/traefik/issues/539)
 - docker run syntax in swarm example has changed [\#528](https://github.com/traefik/traefik/issues/528)
-- Priortities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
+- Priorities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
 - Route by path [\#500](https://github.com/traefik/traefik/issues/500)
 - Secure WebSockets [\#467](https://github.com/traefik/traefik/issues/467)
 - Container IP Lost [\#375](https://github.com/traefik/traefik/issues/375)
@@ -5310,7 +5479,7 @@ Same changelog as v2.0.3.
 - Update marathon [\#648](https://github.com/traefik/traefik/pull/648) ([emilevauge](https://github.com/emilevauge))
 - Add backend features to docker [\#646](https://github.com/traefik/traefik/pull/646) ([jangie](https://github.com/jangie))
 - enable consul catalog to use maxconn [\#645](https://github.com/traefik/traefik/pull/645) ([jangie](https://github.com/jangie))
-- Adopt the Code Of Coduct from http://contributor-covenant.org [\#641](https://github.com/traefik/traefik/pull/641) ([errm](https://github.com/errm))
+- Adopt the Code Of Conduct from http://contributor-covenant.org [\#641](https://github.com/traefik/traefik/pull/641) ([errm](https://github.com/errm))
 - Use secure mode 600 instead of 644 for acme.json [\#639](https://github.com/traefik/traefik/pull/639) ([discordianfish](https://github.com/discordianfish))
 - docker clarification, fix dead urls, misc typos [\#637](https://github.com/traefik/traefik/pull/637) ([djalal](https://github.com/djalal))
 - add PING handler to dashboard API [\#630](https://github.com/traefik/traefik/pull/630) ([jangie](https://github.com/jangie))
@@ -5399,7 +5568,7 @@ Same changelog as v2.0.3.
 - dependencies installation error [\#755](https://github.com/traefik/traefik/issues/755)
 - k8s provider w/ acme? [\#752](https://github.com/traefik/traefik/issues/752)
 - Documented ProvidersThrottleDuration value is invalid [\#741](https://github.com/traefik/traefik/issues/741)
-- Loadbalaning issues with traefik and Docker Swarm cluster [\#730](https://github.com/traefik/traefik/issues/730)
+- Loadbalancing issues with traefik and Docker Swarm cluster [\#730](https://github.com/traefik/traefik/issues/730)
 - issues with marathon app ids containing a dot [\#726](https://github.com/traefik/traefik/issues/726)
 - How Routing traffic depending on path not domain in docker [\#706](https://github.com/traefik/traefik/issues/706)
 - Traefik crashes when using Consul catalog [\#699](https://github.com/traefik/traefik/issues/699)
@@ -5508,7 +5677,7 @@ Same changelog as v2.0.3.
 - Traefik stuck when used as frontend for a streaming API [\#560](https://github.com/traefik/traefik/issues/560)
 - Exclude some frontends in consul catalog [\#555](https://github.com/traefik/traefik/issues/555)
 - Can I use Traefik without a domain name? [\#539](https://github.com/traefik/traefik/issues/539)
-- Priortities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
+- Priorities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
 - Route by path [\#500](https://github.com/traefik/traefik/issues/500)
 - Container IP Lost [\#375](https://github.com/traefik/traefik/issues/375)
 
@@ -5533,7 +5702,7 @@ Same changelog as v2.0.3.
 - Update marathon [\#648](https://github.com/traefik/traefik/pull/648) ([emilevauge](https://github.com/emilevauge))
 - Add backend features to docker [\#646](https://github.com/traefik/traefik/pull/646) ([jangie](https://github.com/jangie))
 - enable consul catalog to use maxconn [\#645](https://github.com/traefik/traefik/pull/645) ([jangie](https://github.com/jangie))
-- Adopt the Code Of Coduct from http://contributor-covenant.org [\#641](https://github.com/traefik/traefik/pull/641) ([errm](https://github.com/errm))
+- Adopt the Code Of Conduct from http://contributor-covenant.org [\#641](https://github.com/traefik/traefik/pull/641) ([errm](https://github.com/errm))
 - Use secure mode 600 instead of 644 for acme.json [\#639](https://github.com/traefik/traefik/pull/639) ([discordianfish](https://github.com/discordianfish))
 - docker clarification, fix dead urls, misc typos [\#637](https://github.com/traefik/traefik/pull/637) ([djalal](https://github.com/djalal))
 - add PING handler to dashboard API [\#630](https://github.com/traefik/traefik/pull/630) ([jangie](https://github.com/jangie))
@@ -5609,7 +5778,7 @@ Same changelog as v2.0.3.
 **Closed issues:**
 
 - Can I use Traefik without a domain name? [\#539](https://github.com/traefik/traefik/issues/539)
-- Priortities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
+- Priorities in 1.0.0 not behaving [\#506](https://github.com/traefik/traefik/issues/506)
 - Route by path [\#500](https://github.com/traefik/traefik/issues/500)
 
 **Merged pull requests:**
@@ -5709,7 +5878,7 @@ Same changelog as v2.0.3.
 - Traefik doesn't listen on IPv4 ports [\#434](https://github.com/traefik/traefik/issues/434)
 - Not listening on port 80 [\#432](https://github.com/traefik/traefik/issues/432)
 - docs need updating for new frontend rules format [\#423](https://github.com/traefik/traefik/issues/423)
-- Does traefik supports for Mac? \(For devlelopment\)  [\#417](https://github.com/traefik/traefik/issues/417)
+- Does traefik supports for Mac? \(For development\)  [\#417](https://github.com/traefik/traefik/issues/417)
 
 **Merged pull requests:**
 
