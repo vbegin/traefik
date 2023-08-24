@@ -1,3 +1,8 @@
+---
+title: "Traefik ForwardAuth Documentation"
+description: "In Traefik Proxy, the HTTP ForwardAuth middleware delegates authentication to an external Service. Read the technical documentation."
+---
+
 # ForwardAuth
 
 Using an External Service to Forward Authentication
@@ -11,7 +16,7 @@ Otherwise, the response from the authentication server is returned.
 
 ## Configuration Examples
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 # Forward authentication to example.com
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
@@ -19,7 +24,7 @@ labels:
 
 ```yaml tab="Kubernetes"
 # Forward authentication to example.com
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -31,18 +36,6 @@ spec:
 ```yaml tab="Consul Catalog"
 # Forward authentication to example.com
 - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.address": "https://example.com/auth"
-}
-```
-
-```yaml tab="Rancher"
-# Forward authentication to example.com
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
 ```
 
 ```yaml tab="File (YAML)"
@@ -79,13 +72,13 @@ The following request properties are provided to the forward-auth target endpoin
 
 The `address` option defines the authentication server address.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -96,17 +89,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.address": "https://example.com/auth"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.address=https://example.com/auth"
 ```
 
 ```yaml tab="File (YAML)"
@@ -127,13 +109,13 @@ http:
 
 Set the `trustForwardHeader` option to `true` to trust all `X-Forwarded-*` headers.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.trustForwardHeader=true"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -145,17 +127,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.trustForwardHeader=true"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.trustForwardHeader": "true"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.trustForwardHeader=true"
 ```
 
 ```yaml tab="File (YAML)"
@@ -179,13 +150,13 @@ http:
 The `authResponseHeaders` option is the list of headers to copy from the authentication server response and set on
 forwarded request, replacing any existing conflicting headers.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders=X-Auth-User, X-Secret"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -199,17 +170,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders=X-Auth-User, X-Secret"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders": "X-Auth-User,X-Secret"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeaders=X-Auth-User, X-Secret"
 ```
 
 ```yaml tab="File (YAML)"
@@ -237,13 +197,13 @@ set on forwarded request, after stripping all headers that match the regex.
 It allows partial matching of the regular expression against the header key.
 The start of string (`^`) and end of string (`$`) anchors should be used to ensure a full match against the header key.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeadersRegex=^X-"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -255,17 +215,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeadersRegex=^X-"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.authResponseHeadersRegex": "^X-"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.authResponseHeadersRegex=^X-"
 ```
 
 ```yaml tab="File (YAML)"
@@ -296,13 +245,13 @@ The `authRequestHeaders` option is the list of the headers to copy from the requ
 It allows filtering headers that should not be passed to the authentication server.
 If not set or empty then all request headers are passed.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.authRequestHeaders=Accept,X-CustomHeader"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -316,17 +265,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.authRequestHeaders=Accept,X-CustomHeader"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.authRequestHeaders": "Accept,X-CustomHeader"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.authRequestHeaders=Accept,X-CustomHeader"
 ```
 
 ```yaml tab="File (YAML)"
@@ -360,13 +298,13 @@ _Optional_
 `ca` is the path to the certificate authority used for the secured connection to the authentication server,
 it defaults to the system bundle.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.tls.ca=path/to/local.crt"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -392,17 +330,6 @@ data:
 - "traefik.http.middlewares.test-auth.forwardauth.tls.ca=path/to/local.crt"
 ```
 
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.tls.ca": "path/to/local.crt"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.ca=path/to/local.crt"
-```
-
 ```yaml tab="File (YAML)"
 http:
   middlewares:
@@ -421,70 +348,6 @@ http:
       ca = "path/to/local.crt"
 ```
 
-#### `caOptional`
-
-_Optional_
-
-The value of `caOptional` defines which policy should be used for the secure connection with TLS Client Authentication to the authentication server.
-
-!!! warning ""
-
-    If `ca` is undefined, this option will be ignored, and no client certificate will be requested during the handshake. Any provided certificate will thus never be verified.
-
-When this option is set to `true`, a client certificate is requested during the handshake but is not required. If a certificate is sent, it is required to be valid.
-
-When this option is set to `false`, a client certificate is requested during the handshake, and at least one valid certificate should be sent by the client.
-
-```yaml tab="Docker"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.caOptional=true"
-```
-
-```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: test-auth
-spec:
-  forwardAuth:
-    address: https://example.com/auth
-    tls:
-      caOptional: true
-```
-
-```yaml tab="Consul Catalog"
-- "traefik.http.middlewares.test-auth.forwardauth.tls.caOptional=true"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.tls.caOptional": "true"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.caOptional=true"
-```
-
-```yaml tab="File (YAML)"
-http:
-  middlewares:
-    test-auth:
-      forwardAuth:
-        address: "https://example.com/auth"
-        tls:
-          caOptional: true
-```
-
-```toml tab="File (TOML)"
-[http.middlewares]
-  [http.middlewares.test-auth.forwardAuth]
-    address = "https://example.com/auth"
-    [http.middlewares.test-auth.forwardAuth.tls]
-      caOptional = true
-```
-
 #### `cert`
 
 _Optional_
@@ -492,14 +355,14 @@ _Optional_
 `cert` is the path to the public certificate used for the secure connection to the authentication server.
 When using this option, setting the `key` option is required.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
   - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -524,19 +387,6 @@ data:
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
 - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.tls.cert": "path/to/foo.cert",
-  "traefik.http.middlewares.test-auth.forwardauth.tls.key": "path/to/foo.key"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
 ```
 
 ```yaml tab="File (YAML)"
@@ -570,14 +420,14 @@ _Optional_
 `key` is the path to the private key used for the secure connection to the authentication server.
 When using this option, setting the `cert` option is required.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
   - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -602,19 +452,6 @@ data:
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
 - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.tls.cert": "path/to/foo.cert",
-  "traefik.http.middlewares.test-auth.forwardauth.tls.key": "path/to/foo.key"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.cert=path/to/foo.cert"
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.key=path/to/foo.key"
 ```
 
 ```yaml tab="File (YAML)"
@@ -647,13 +484,13 @@ _Optional, Default=false_
 
 If `insecureSkipVerify` is `true`, the TLS connection to the authentication server accepts any certificate presented by the server regardless of the hostnames it covers.
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 labels:
   - "traefik.http.middlewares.test-auth.forwardauth.tls.insecureSkipVerify=true"
 ```
 
 ```yaml tab="Kubernetes"
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: test-auth
@@ -666,17 +503,6 @@ spec:
 
 ```yaml tab="Consul Catalog"
 - "traefik.http.middlewares.test-auth.forwardauth.tls.InsecureSkipVerify=true"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.test-auth.forwardauth.tls.insecureSkipVerify": "true"
-}
-```
-
-```yaml tab="Rancher"
-labels:
-  - "traefik.http.middlewares.test-auth.forwardauth.tls.InsecureSkipVerify=true"
 ```
 
 ```yaml tab="File (YAML)"

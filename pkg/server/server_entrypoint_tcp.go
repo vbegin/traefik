@@ -7,28 +7,34 @@ import (
 	stdlog "log"
 	"net"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containous/alice"
+	gokitmetrics "github.com/go-kit/kit/metrics"
 	"github.com/pires/go-proxyproto"
-	"github.com/sirupsen/logrus"
-	"github.com/traefik/traefik/v2/pkg/config/static"
-	"github.com/traefik/traefik/v2/pkg/ip"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/middlewares"
-	"github.com/traefik/traefik/v2/pkg/middlewares/forwardedheaders"
-	"github.com/traefik/traefik/v2/pkg/middlewares/requestdecorator"
-	"github.com/traefik/traefik/v2/pkg/safe"
-	"github.com/traefik/traefik/v2/pkg/server/router"
-	"github.com/traefik/traefik/v2/pkg/tcp"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/ip"
+	"github.com/traefik/traefik/v3/pkg/logs"
+	"github.com/traefik/traefik/v3/pkg/metrics"
+	"github.com/traefik/traefik/v3/pkg/middlewares"
+	"github.com/traefik/traefik/v3/pkg/middlewares/contenttype"
+	"github.com/traefik/traefik/v3/pkg/middlewares/forwardedheaders"
+	"github.com/traefik/traefik/v3/pkg/middlewares/requestdecorator"
+	"github.com/traefik/traefik/v3/pkg/safe"
+	"github.com/traefik/traefik/v3/pkg/server/router"
+	tcprouter "github.com/traefik/traefik/v3/pkg/server/router/tcp"
+	"github.com/traefik/traefik/v3/pkg/tcp"
+	"github.com/traefik/traefik/v3/pkg/types"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
-
-var httpServerLogger = stdlog.New(log.WithoutContext().WriterLevel(logrus.DebugLevel), "", 0)
 
 type httpForwarder struct {
 	net.Listener
@@ -63,7 +69,7 @@ func (h *httpForwarder) Accept() (net.Conn, error) {
 type TCPEntryPoints map[string]*TCPEntryPoint
 
 // NewTCPEntryPoints creates a new TCPEntryPoints.
-func NewTCPEntryPoints(entryPointsConfig static.EntryPoints, hostResolverConfig *types.HostResolverConfig) (TCPEntryPoints, error) {
+func NewTCPEntryPoints(entryPointsConfig static.EntryPoints, hostResolverConfig *types.HostResolverConfig, metricsRegistry metrics.Registry) (TCPEntryPoints, error) {
 	serverEntryPointsTCP := make(TCPEntryPoints)
 	for entryPointName, config := range entryPointsConfig {
 		protocol, err := config.GetProtocol()
@@ -75,9 +81,13 @@ func NewTCPEntryPoints(entryPointsConfig static.EntryPoints, hostResolverConfig 
 			continue
 		}
 
-		ctx := log.With(context.Background(), log.Str(log.EntryPointName, entryPointName))
+		ctx := log.With().Str(logs.EntryPointName, entryPointName).Logger().WithContext(context.Background())
 
-		serverEntryPointsTCP[entryPointName], err = NewTCPEntryPoint(ctx, config, hostResolverConfig)
+		openConnectionsGauge := metricsRegistry.
+			OpenConnectionsGauge().
+			With("entrypoint", entryPointName, "protocol", "TCP")
+
+		serverEntryPointsTCP[entryPointName], err = NewTCPEntryPoint(ctx, config, hostResolverConfig, openConnectionsGauge)
 		if err != nil {
 			return nil, fmt.Errorf("error while building entryPoint %s: %w", entryPointName, err)
 		}
@@ -88,7 +98,7 @@ func NewTCPEntryPoints(entryPointsConfig static.EntryPoints, hostResolverConfig 
 // Start the server entry points.
 func (eps TCPEntryPoints) Start() {
 	for entryPointName, serverEntryPoint := range eps {
-		ctx := log.With(context.Background(), log.Str(log.EntryPointName, entryPointName))
+		ctx := log.With().Str(logs.EntryPointName, entryPointName).Logger().WithContext(context.Background())
 		go serverEntryPoint.Start(ctx)
 	}
 }
@@ -103,10 +113,10 @@ func (eps TCPEntryPoints) Stop() {
 		go func(entryPointName string, entryPoint *TCPEntryPoint) {
 			defer wg.Done()
 
-			ctx := log.With(context.Background(), log.Str(log.EntryPointName, entryPointName))
-			entryPoint.Shutdown(ctx)
+			logger := log.With().Str(logs.EntryPointName, entryPointName).Logger()
+			entryPoint.Shutdown(logger.WithContext(context.Background()))
 
-			log.FromContext(ctx).Debugf("Entry point %s closed", entryPointName)
+			logger.Debug().Msg("Entrypoint closed")
 		}(epn, ep)
 	}
 
@@ -114,7 +124,7 @@ func (eps TCPEntryPoints) Stop() {
 }
 
 // Switch the TCP routers.
-func (eps TCPEntryPoints) Switch(routersTCP map[string]*tcp.Router) {
+func (eps TCPEntryPoints) Switch(routersTCP map[string]*tcprouter.Router) {
 	for entryPointName, rt := range routersTCP {
 		eps[entryPointName].SwitchRouter(rt)
 	}
@@ -133,15 +143,15 @@ type TCPEntryPoint struct {
 }
 
 // NewTCPEntryPoint creates a new TCPEntryPoint.
-func NewTCPEntryPoint(ctx context.Context, configuration *static.EntryPoint, hostResolverConfig *types.HostResolverConfig) (*TCPEntryPoint, error) {
-	tracker := newConnectionTracker()
+func NewTCPEntryPoint(ctx context.Context, configuration *static.EntryPoint, hostResolverConfig *types.HostResolverConfig, openConnectionsGauge gokitmetrics.Gauge) (*TCPEntryPoint, error) {
+	tracker := newConnectionTracker(openConnectionsGauge)
 
 	listener, err := buildListener(ctx, configuration)
 	if err != nil {
 		return nil, fmt.Errorf("error preparing server: %w", err)
 	}
 
-	rt := &tcp.Router{}
+	rt := &tcprouter.Router{}
 
 	reqDecorator := requestdecorator.New(hostResolverConfig)
 
@@ -150,7 +160,7 @@ func NewTCPEntryPoint(ctx context.Context, configuration *static.EntryPoint, hos
 		return nil, fmt.Errorf("error preparing http server: %w", err)
 	}
 
-	rt.HTTPForwarder(httpServer.Forwarder)
+	rt.SetHTTPForwarder(httpServer.Forwarder)
 
 	httpsServer, err := createHTTPServer(ctx, listener, configuration, false, reqDecorator)
 	if err != nil {
@@ -162,7 +172,7 @@ func NewTCPEntryPoint(ctx context.Context, configuration *static.EntryPoint, hos
 		return nil, fmt.Errorf("error preparing http3 server: %w", err)
 	}
 
-	rt.HTTPSForwarder(httpsServer.Forwarder)
+	rt.SetHTTPSForwarder(httpsServer.Forwarder)
 
 	tcpSwitcher := &tcp.HandlerSwitcher{}
 	tcpSwitcher.Switch(rt)
@@ -180,8 +190,8 @@ func NewTCPEntryPoint(ctx context.Context, configuration *static.EntryPoint, hos
 
 // Start starts the TCP server.
 func (e *TCPEntryPoint) Start(ctx context.Context) {
-	logger := log.FromContext(ctx)
-	logger.Debugf("Start TCP Server")
+	logger := log.Ctx(ctx)
+	logger.Debug().Msg("Starting TCP Server")
 
 	if e.http3Server != nil {
 		go func() { _ = e.http3Server.Start() }()
@@ -190,10 +200,15 @@ func (e *TCPEntryPoint) Start(ctx context.Context) {
 	for {
 		conn, err := e.listener.Accept()
 		if err != nil {
-			logger.Error(err)
+			logger.Error().Err(err).Send()
 
-			var netErr net.Error
-			if errors.As(err, &netErr) && netErr.Temporary() {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) && opErr.Temporary() {
+				continue
+			}
+
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) && urlErr.Temporary() {
 				continue
 			}
 
@@ -215,14 +230,14 @@ func (e *TCPEntryPoint) Start(ctx context.Context) {
 			if e.transportConfiguration.RespondingTimeouts.ReadTimeout > 0 {
 				err := writeCloser.SetReadDeadline(time.Now().Add(time.Duration(e.transportConfiguration.RespondingTimeouts.ReadTimeout)))
 				if err != nil {
-					logger.Errorf("Error while setting read deadline: %v", err)
+					logger.Error().Err(err).Msg("Error while setting read deadline")
 				}
 			}
 
 			if e.transportConfiguration.RespondingTimeouts.WriteTimeout > 0 {
 				err = writeCloser.SetWriteDeadline(time.Now().Add(time.Duration(e.transportConfiguration.RespondingTimeouts.WriteTimeout)))
 				if err != nil {
-					logger.Errorf("Error while setting write deadline: %v", err)
+					logger.Error().Err(err).Msg("Error while setting write deadline")
 				}
 			}
 
@@ -233,17 +248,17 @@ func (e *TCPEntryPoint) Start(ctx context.Context) {
 
 // Shutdown stops the TCP connections.
 func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
-	logger := log.FromContext(ctx)
+	logger := log.Ctx(ctx)
 
 	reqAcceptGraceTimeOut := time.Duration(e.transportConfiguration.LifeCycle.RequestAcceptGraceTimeout)
 	if reqAcceptGraceTimeOut > 0 {
-		logger.Infof("Waiting %s for incoming requests to cease", reqAcceptGraceTimeOut)
+		logger.Info().Msgf("Waiting %s for incoming requests to cease", reqAcceptGraceTimeOut)
 		time.Sleep(reqAcceptGraceTimeOut)
 	}
 
 	graceTimeOut := time.Duration(e.transportConfiguration.LifeCycle.GraceTimeOut)
 	ctx, cancel := context.WithTimeout(ctx, graceTimeOut)
-	logger.Debugf("Waiting %s seconds before killing connections.", graceTimeOut)
+	logger.Debug().Msgf("Waiting %s seconds before killing connections", graceTimeOut)
 
 	var wg sync.WaitGroup
 
@@ -254,13 +269,15 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 			return
 		}
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			logger.Debugf("Server failed to shutdown within deadline because: %s", err)
+			logger.Debug().Err(err).Msg("Server failed to shutdown within deadline")
 			if err = server.Close(); err != nil {
-				logger.Error(err)
+				logger.Error().Err(err).Send()
 			}
 			return
 		}
-		logger.Error(err)
+
+		logger.Error().Err(err).Send()
+
 		// We expect Close to fail again because Shutdown most likely failed when trying to close a listener.
 		// We still call it however, to make sure that all connections get closed as well.
 		server.Close()
@@ -290,7 +307,7 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 				return
 			}
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-				logger.Debugf("Server failed to shutdown before deadline because: %s", err)
+				logger.Debug().Err(err).Msg("Server failed to shutdown before deadline")
 			}
 			e.tracker.Close()
 		}()
@@ -301,8 +318,8 @@ func (e *TCPEntryPoint) Shutdown(ctx context.Context) {
 }
 
 // SwitchRouter switches the TCP router handler.
-func (e *TCPEntryPoint) SwitchRouter(rt *tcp.Router) {
-	rt.HTTPForwarder(e.httpServer.Forwarder)
+func (e *TCPEntryPoint) SwitchRouter(rt *tcprouter.Router) {
+	rt.SetHTTPForwarder(e.httpServer.Forwarder)
 
 	httpHandler := rt.GetHTTPHandler()
 	if httpHandler == nil {
@@ -311,7 +328,7 @@ func (e *TCPEntryPoint) SwitchRouter(rt *tcp.Router) {
 
 	e.httpServer.Switcher.UpdateHandler(httpHandler)
 
-	rt.HTTPSForwarder(e.httpsServer.Forwarder)
+	rt.SetHTTPSForwarder(e.httpsServer.Forwarder)
 
 	httpsHandler := rt.GetHTTPSHandler()
 	if httpsHandler == nil {
@@ -372,8 +389,7 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	}
 
 	if err := tc.SetKeepAlivePeriod(3 * time.Minute); err != nil {
-		// Some systems, such as OpenBSD, have no user-settable per-socket TCP
-		// keepalive options.
+		// Some systems, such as OpenBSD, have no user-settable per-socket TCP keepalive options.
 		if !errors.Is(err, syscall.ENOPROTOOPT) {
 			return nil, err
 		}
@@ -386,7 +402,7 @@ func buildProxyProtocolListener(ctx context.Context, entryPoint *static.EntryPoi
 	proxyListener := &proxyproto.Listener{Listener: listener}
 
 	if entryPoint.ProxyProtocol.Insecure {
-		log.FromContext(ctx).Infof("Enabling ProxyProtocol without trusted IPs: Insecure")
+		log.Ctx(ctx).Info().Msg("Enabling ProxyProtocol without trusted IPs: Insecure")
 		return proxyListener, nil
 	}
 
@@ -402,13 +418,13 @@ func buildProxyProtocolListener(ctx context.Context, entryPoint *static.EntryPoi
 		}
 
 		if !checker.ContainsIP(ipAddr.IP) {
-			log.FromContext(ctx).Debugf("IP %s is not in trusted IPs list, ignoring ProxyProtocol Headers and bypass connection", ipAddr.IP)
+			log.Ctx(ctx).Debug().Msgf("IP %s is not in trusted IPs list, ignoring ProxyProtocol Headers and bypass connection", ipAddr.IP)
 			return proxyproto.IGNORE, nil
 		}
 		return proxyproto.USE, nil
 	}
 
-	log.FromContext(ctx).Infof("Enabling ProxyProtocol for trusted IPs %v", entryPoint.ProxyProtocol.TrustedIPs)
+	log.Ctx(ctx).Info().Msgf("Enabling ProxyProtocol for trusted IPs %v", entryPoint.ProxyProtocol.TrustedIPs)
 
 	return proxyListener, nil
 }
@@ -430,34 +446,45 @@ func buildListener(ctx context.Context, entryPoint *static.EntryPoint) (net.List
 	return listener, nil
 }
 
-func newConnectionTracker() *connectionTracker {
+func newConnectionTracker(openConnectionsGauge gokitmetrics.Gauge) *connectionTracker {
 	return &connectionTracker{
-		conns: make(map[net.Conn]struct{}),
+		conns:                make(map[net.Conn]struct{}),
+		openConnectionsGauge: openConnectionsGauge,
 	}
 }
 
 type connectionTracker struct {
-	conns map[net.Conn]struct{}
-	lock  sync.RWMutex
+	connsMu sync.RWMutex
+	conns   map[net.Conn]struct{}
+
+	openConnectionsGauge gokitmetrics.Gauge
 }
 
 // AddConnection add a connection in the tracked connections list.
 func (c *connectionTracker) AddConnection(conn net.Conn) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.connsMu.Lock()
 	c.conns[conn] = struct{}{}
+	c.connsMu.Unlock()
+
+	if c.openConnectionsGauge != nil {
+		c.openConnectionsGauge.Add(1)
+	}
 }
 
 // RemoveConnection remove a connection from the tracked connections list.
 func (c *connectionTracker) RemoveConnection(conn net.Conn) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.connsMu.Lock()
 	delete(c.conns, conn)
+	c.connsMu.Unlock()
+
+	if c.openConnectionsGauge != nil {
+		c.openConnectionsGauge.Add(-1)
+	}
 }
 
 func (c *connectionTracker) isEmpty() bool {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.connsMu.RLock()
+	defer c.connsMu.RUnlock()
 	return len(c.conns) == 0
 }
 
@@ -479,11 +506,11 @@ func (c *connectionTracker) Shutdown(ctx context.Context) error {
 
 // Close close all the connections in the tracked connections list.
 func (c *connectionTracker) Close() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.connsMu.Lock()
+	defer c.connsMu.Unlock()
 	for conn := range c.conns {
 		if err := conn.Close(); err != nil {
-			log.WithoutContext().Errorf("Error while closing connection: %v", err)
+			log.Error().Err(err).Msg("Error while closing connection")
 		}
 		delete(c.conns, conn)
 	}
@@ -506,6 +533,10 @@ type httpServer struct {
 }
 
 func createHTTPServer(ctx context.Context, ln net.Listener, configuration *static.EntryPoint, withH2c bool, reqDecorator *requestdecorator.RequestDecorator) (*httpServer, error) {
+	if configuration.HTTP2.MaxConcurrentStreams < 0 {
+		return nil, errors.New("max concurrent streams value must be greater than or equal to zero")
+	}
+
 	httpSwitcher := middlewares.NewHandlerSwitcher(router.BuildDefaultHTTPRouter())
 
 	next, err := alice.New(requestdecorator.WrapHandler(reqDecorator)).Then(httpSwitcher)
@@ -522,23 +553,47 @@ func createHTTPServer(ctx context.Context, ln net.Listener, configuration *stati
 		return nil, err
 	}
 
+	if configuration.HTTP.EncodeQuerySemicolons {
+		handler = encodeQuerySemicolons(handler)
+	} else {
+		handler = http.AllowQuerySemicolons(handler)
+	}
+
+	handler = contenttype.DisableAutoDetection(handler)
+
 	if withH2c {
-		handler = h2c.NewHandler(handler, &http2.Server{})
+		handler = h2c.NewHandler(handler, &http2.Server{
+			MaxConcurrentStreams: uint32(configuration.HTTP2.MaxConcurrentStreams),
+		})
 	}
 
 	serverHTTP := &http.Server{
 		Handler:      handler,
-		ErrorLog:     httpServerLogger,
+		ErrorLog:     stdlog.New(logs.NoLevel(log.Logger, zerolog.DebugLevel), "", 0),
 		ReadTimeout:  time.Duration(configuration.Transport.RespondingTimeouts.ReadTimeout),
 		WriteTimeout: time.Duration(configuration.Transport.RespondingTimeouts.WriteTimeout),
 		IdleTimeout:  time.Duration(configuration.Transport.RespondingTimeouts.IdleTimeout),
+	}
+
+	// ConfigureServer configures HTTP/2 with the MaxConcurrentStreams option for the given server.
+	// Also keeping behavior the same as
+	// https://cs.opensource.google/go/go/+/refs/tags/go1.17.7:src/net/http/server.go;l=3262
+	if !strings.Contains(os.Getenv("GODEBUG"), "http2server=0") {
+		err = http2.ConfigureServer(serverHTTP, &http2.Server{
+			MaxConcurrentStreams: uint32(configuration.HTTP2.MaxConcurrentStreams),
+			NewWriteScheduler:    func() http2.WriteScheduler { return http2.NewPriorityWriteScheduler(nil) },
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("configure HTTP/2 server: %w", err)
+		}
 	}
 
 	listener := newHTTPForwarder(ln)
 	go func() {
 		err := serverHTTP.Serve(listener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.FromContext(ctx).Errorf("Error while starting server: %v", err)
+			log.Ctx(ctx).Error().Err(err).Msg("Error while starting server")
 		}
 	}()
 	return &httpServer{
@@ -564,4 +619,24 @@ type trackedConnection struct {
 func (t *trackedConnection) Close() error {
 	t.tracker.RemoveConnection(t.WriteCloser)
 	return t.WriteCloser.Close()
+}
+
+// This function is inspired by http.AllowQuerySemicolons.
+func encodeQuerySemicolons(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if strings.Contains(req.URL.RawQuery, ";") {
+			r2 := new(http.Request)
+			*r2 = *req
+			r2.URL = new(url.URL)
+			*r2.URL = *req.URL
+
+			r2.URL.RawQuery = strings.ReplaceAll(req.URL.RawQuery, ";", "%3B")
+			// Because the reverse proxy director is building query params from requestURI it needs to be updated as well.
+			r2.RequestURI = r2.URL.RequestURI()
+
+			h.ServeHTTP(rw, r2)
+		} else {
+			h.ServeHTTP(rw, req)
+		}
+	})
 }

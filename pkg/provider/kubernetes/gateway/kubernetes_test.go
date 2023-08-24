@@ -3,15 +3,17 @@ package gateway
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/provider"
-	"github.com/traefik/traefik/v2/pkg/tls"
+	ptypes "github.com/traefik/paerser/types"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/provider"
+	"github.com/traefik/traefik/v3/pkg/tls"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/gateway-api/apis/v1alpha2"
+	gatev1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
 var _ provider.Provider = (*Provider)(nil)
@@ -32,9 +34,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -57,9 +60,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -82,9 +86,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -107,9 +112,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -132,9 +138,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -157,9 +164,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -182,9 +190,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -207,9 +216,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -232,9 +242,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -257,9 +268,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -282,9 +294,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -307,9 +320,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -332,9 +346,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -357,9 +372,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -382,9 +398,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -408,9 +425,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -433,9 +451,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -458,9 +477,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -492,9 +512,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -517,9 +538,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -552,6 +574,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -572,9 +597,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -603,9 +629,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -642,6 +669,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -662,9 +692,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -698,6 +729,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -727,21 +761,22 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
-						"default-http-app-1-my-gateway-web-75dd1ad561e42725558a": {
+						"default-http-app-1-my-gateway-web-66e726cd8903b49727ae": {
 							EntryPoints: []string{"web"},
-							Service:     "default-http-app-1-my-gateway-web-75dd1ad561e42725558a-wrr",
-							Rule:        "Host(`foo.com`, `bar.com`) && PathPrefix(`/`)",
+							Service:     "default-http-app-1-my-gateway-web-66e726cd8903b49727ae-wrr",
+							Rule:        "(Host(`foo.com`) || Host(`bar.com`)) && PathPrefix(`/`)",
 						},
 					},
 					Middlewares: map[string]*dynamic.Middleware{},
 					Services: map[string]*dynamic.Service{
-						"default-http-app-1-my-gateway-web-75dd1ad561e42725558a-wrr": {
+						"default-http-app-1-my-gateway-web-66e726cd8903b49727ae-wrr": {
 							Weighted: &dynamic.WeightedRoundRobin{
 								Services: []dynamic.WRRService{
 									{
@@ -762,6 +797,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -782,21 +820,22 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
-						"default-http-app-1-my-gateway-web-2dbd7883f5537db39bca": {
+						"default-http-app-1-my-gateway-web-3b78e2feb3295ddd87f0": {
 							EntryPoints: []string{"web"},
-							Service:     "default-http-app-1-my-gateway-web-2dbd7883f5537db39bca-wrr",
-							Rule:        "(Host(`foo.com`) || HostRegexp(`{subdomain:[a-zA-Z0-9-]+}.bar.com`)) && PathPrefix(`/`)",
+							Service:     "default-http-app-1-my-gateway-web-3b78e2feb3295ddd87f0-wrr",
+							Rule:        "(Host(`foo.com`) || HostRegexp(`^[a-zA-Z0-9-]+\\.bar\\.com$`)) && PathPrefix(`/`)",
 						},
 					},
 					Middlewares: map[string]*dynamic.Middleware{},
 					Services: map[string]*dynamic.Service{
-						"default-http-app-1-my-gateway-web-2dbd7883f5537db39bca-wrr": {
+						"default-http-app-1-my-gateway-web-3b78e2feb3295ddd87f0-wrr": {
 							Weighted: &dynamic.WeightedRoundRobin{
 								Services: []dynamic.WRRService{
 									{
@@ -817,6 +856,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -837,21 +879,22 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
-						"default-http-app-1-my-gateway-web-eb1490f180299bf5ed29": {
+						"default-http-app-1-my-gateway-web-b0521a61fb43068694b4": {
 							EntryPoints: []string{"web"},
-							Service:     "default-http-app-1-my-gateway-web-eb1490f180299bf5ed29-wrr",
-							Rule:        "(Host(`foo.com`) || HostRegexp(`{subdomain:[a-zA-Z0-9-]+}.foo.com`)) && PathPrefix(`/`)",
+							Service:     "default-http-app-1-my-gateway-web-b0521a61fb43068694b4-wrr",
+							Rule:        "(Host(`foo.com`) || HostRegexp(`^[a-zA-Z0-9-]+\\.foo\\.com$`)) && PathPrefix(`/`)",
 						},
 					},
 					Middlewares: map[string]*dynamic.Middleware{},
 					Services: map[string]*dynamic.Service{
-						"default-http-app-1-my-gateway-web-eb1490f180299bf5ed29-wrr": {
+						"default-http-app-1-my-gateway-web-b0521a61fb43068694b4-wrr": {
 							Weighted: &dynamic.WeightedRoundRobin{
 								Services: []dynamic.WRRService{
 									{
@@ -872,6 +915,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -892,9 +938,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -942,6 +989,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"default-whoami2-8080": {
@@ -955,6 +1005,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -975,9 +1028,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1014,6 +1068,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"default-whoami2-8080": {
@@ -1027,6 +1084,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1052,9 +1112,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1103,6 +1164,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1137,9 +1201,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1188,6 +1253,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1217,9 +1285,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1267,6 +1336,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1287,9 +1359,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1322,6 +1395,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1342,9 +1418,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1392,6 +1469,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"bar-whoami-bar-80": {
@@ -1405,6 +1485,9 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1425,9 +1508,10 @@ func TestLoadHTTPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -1460,6 +1544,144 @@ func TestLoadHTTPRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
+							},
+						},
+					},
+					ServersTransports: map[string]*dynamic.ServersTransport{},
+				},
+				TLS: &dynamic.TLSConfiguration{},
+			},
+		},
+		{
+			desc:  "Simple HTTPRoute, redirect HTTP to HTTPS",
+			paths: []string{"services.yml", "httproute/filter_http_to_https.yml"},
+			entryPoints: map[string]Entrypoint{"web": {
+				Address: ":80",
+			}},
+			expected: &dynamic.Configuration{
+				UDP: &dynamic.UDPConfiguration{
+					Routers:  map[string]*dynamic.UDPRouter{},
+					Services: map[string]*dynamic.UDPService{},
+				},
+				TCP: &dynamic.TCPConfiguration{
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers: map[string]*dynamic.Router{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4": {
+							EntryPoints: []string{"web"},
+							Service:     "default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-wrr",
+							Rule:        "Host(`example.org`) && PathPrefix(`/`)",
+							Middlewares: []string{"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-requestredirect-0"},
+						},
+					},
+					Middlewares: map[string]*dynamic.Middleware{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-requestredirect-0": {
+							RedirectRegex: &dynamic.RedirectRegex{
+								Regex:       "^[a-z]+:\\/\\/(?P<userInfo>.+@)?(?P<hostname>\\[[\\w:\\.]+\\]|[\\w\\._-]+)(?P<port>:\\d+)?\\/(?P<path>.*)",
+								Replacement: "https://${userinfo}${hostname}${port}/${path}",
+								Permanent:   true,
+							},
+						},
+					},
+					Services: map[string]*dynamic.Service{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-wrr": {
+							Weighted: &dynamic.WeightedRoundRobin{
+								Services: []dynamic.WRRService{
+									{
+										Name:   "default-whoami-80",
+										Weight: func(i int) *int { return &i }(1),
+									},
+								},
+							},
+						},
+						"default-whoami-80": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{
+										URL: "http://10.10.0.1:80",
+									},
+									{
+										URL: "http://10.10.0.2:80",
+									},
+								},
+								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
+							},
+						},
+					},
+					ServersTransports: map[string]*dynamic.ServersTransport{},
+				},
+				TLS: &dynamic.TLSConfiguration{},
+			},
+		},
+		{
+			desc:  "Simple HTTPRoute, redirect HTTP to HTTPS with hostname",
+			paths: []string{"services.yml", "httproute/filter_http_to_https_with_hostname_and_port.yml"},
+			entryPoints: map[string]Entrypoint{"web": {
+				Address: ":80",
+			}},
+			expected: &dynamic.Configuration{
+				UDP: &dynamic.UDPConfiguration{
+					Routers:  map[string]*dynamic.UDPRouter{},
+					Services: map[string]*dynamic.UDPService{},
+				},
+				TCP: &dynamic.TCPConfiguration{
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
+				},
+				HTTP: &dynamic.HTTPConfiguration{
+					Routers: map[string]*dynamic.Router{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4": {
+							EntryPoints: []string{"web"},
+							Service:     "default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-wrr",
+							Rule:        "Host(`example.org`) && PathPrefix(`/`)",
+							Middlewares: []string{"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-requestredirect-0"},
+						},
+					},
+					Middlewares: map[string]*dynamic.Middleware{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-requestredirect-0": {
+							RedirectRegex: &dynamic.RedirectRegex{
+								Regex:       "^[a-z]+:\\/\\/(?P<userInfo>.+@)?(?P<hostname>\\[[\\w:\\.]+\\]|[\\w\\._-]+)(?P<port>:\\d+)?\\/(?P<path>.*)",
+								Replacement: "http://${userinfo}example.com:443/${path}",
+							},
+						},
+					},
+					Services: map[string]*dynamic.Service{
+						"default-http-app-1-my-gateway-web-364ce6ec04c3d49b19c4-wrr": {
+							Weighted: &dynamic.WeightedRoundRobin{
+								Services: []dynamic.WRRService{
+									{
+										Name:   "default-whoami-80",
+										Weight: func(i int) *int { return &i }(1),
+									},
+								},
+							},
+						},
+						"default-whoami-80": {
+							LoadBalancer: &dynamic.ServersLoadBalancer{
+								Servers: []dynamic.Server{
+									{
+										URL: "http://10.10.0.1:80",
+									},
+									{
+										URL: "http://10.10.0.2:80",
+									},
+								},
+								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -1502,9 +1724,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1527,9 +1750,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1552,9 +1776,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1577,9 +1802,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1602,9 +1828,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1627,9 +1854,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1652,9 +1880,10 @@ func TestLoadTCPRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1709,6 +1938,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1792,6 +2022,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1884,6 +2115,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1942,6 +2174,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -1995,6 +2228,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2058,6 +2292,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2139,6 +2374,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2193,6 +2429,7 @@ func TestLoadTCPRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2237,9 +2474,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2262,9 +2500,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2287,9 +2526,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2312,9 +2552,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2337,9 +2578,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2362,9 +2604,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2395,9 +2638,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2420,9 +2664,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2478,6 +2723,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2544,6 +2790,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2601,6 +2848,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2687,6 +2935,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2755,6 +3004,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2821,6 +3071,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2878,6 +3129,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2935,6 +3187,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -2958,10 +3211,10 @@ func TestLoadTLSRoutes(t *testing.T) {
 				},
 				TCP: &dynamic.TCPConfiguration{
 					Routers: map[string]*dynamic.TCPRouter{
-						"default-tls-app-1-my-gateway-tls-339184c3296a9c2c39fa": {
+						"default-tls-app-1-my-gateway-tls-d5342d75658583f03593": {
 							EntryPoints: []string{"tls"},
-							Service:     "default-tls-app-1-my-gateway-tls-339184c3296a9c2c39fa-wrr-0",
-							Rule:        "HostSNI(`foo.example.com`,`bar.example.com`)",
+							Service:     "default-tls-app-1-my-gateway-tls-d5342d75658583f03593-wrr-0",
+							Rule:        "HostSNI(`foo.example.com`) || HostSNI(`bar.example.com`)",
 							TLS: &dynamic.RouterTCPTLSConfig{
 								Passthrough: true,
 							},
@@ -2969,7 +3222,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 					},
 					Middlewares: map[string]*dynamic.TCPMiddleware{},
 					Services: map[string]*dynamic.TCPService{
-						"default-tls-app-1-my-gateway-tls-339184c3296a9c2c39fa-wrr-0": {
+						"default-tls-app-1-my-gateway-tls-d5342d75658583f03593-wrr-0": {
 							Weighted: &dynamic.TCPWeightedRoundRobin{
 								Services: []dynamic.TCPWRRService{
 									{
@@ -2992,6 +3245,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3049,6 +3303,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3136,6 +3391,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3193,6 +3449,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3286,6 +3543,7 @@ func TestLoadTLSRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3330,9 +3588,10 @@ func TestLoadMixedRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3355,9 +3614,10 @@ func TestLoadMixedRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3380,9 +3640,10 @@ func TestLoadMixedRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3405,9 +3666,10 @@ func TestLoadMixedRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3500,6 +3762,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -3548,6 +3811,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -3566,8 +3832,8 @@ func TestLoadMixedRoutes(t *testing.T) {
 			},
 		},
 		{
-			desc:  "Empty caused by mixed routes multiple protocol using same port",
-			paths: []string{"services.yml", "mixed/with_multiple_protocol_using_same_port.yml"},
+			desc:  "Empty caused by mixed routes with multiple listeners using same hostname, port and protocol",
+			paths: []string{"services.yml", "mixed/with_multiple_listeners_using_same_hostname_port_protocol.yml"},
 			entryPoints: map[string]Entrypoint{
 				"web": {Address: ":9080"},
 				"tcp": {Address: ":9000"},
@@ -3579,9 +3845,10 @@ func TestLoadMixedRoutes(t *testing.T) {
 					Services: map[string]*dynamic.UDPService{},
 				},
 				TCP: &dynamic.TCPConfiguration{
-					Routers:     map[string]*dynamic.TCPRouter{},
-					Middlewares: map[string]*dynamic.TCPMiddleware{},
-					Services:    map[string]*dynamic.TCPService{},
+					Routers:           map[string]*dynamic.TCPRouter{},
+					Middlewares:       map[string]*dynamic.TCPMiddleware{},
+					Services:          map[string]*dynamic.TCPService{},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers:           map[string]*dynamic.Router{},
@@ -3674,6 +3941,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -3722,6 +3990,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -3864,6 +4135,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -3923,6 +4195,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"bar-whoami-bar-80": {
@@ -3936,6 +4211,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"bar-http-app-bar-my-gateway-web-a431b128267aabc954fd-wrr": {
@@ -4055,6 +4333,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -4083,6 +4362,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 						"bar-http-app-bar-my-gateway-web-a431b128267aabc954fd-wrr": {
@@ -4183,6 +4465,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 							},
 						},
 					},
+					ServersTransports: map[string]*dynamic.TCPServersTransport{},
 				},
 				HTTP: &dynamic.HTTPConfiguration{
 					Routers: map[string]*dynamic.Router{
@@ -4231,6 +4514,9 @@ func TestLoadMixedRoutes(t *testing.T) {
 									},
 								},
 								PassHostHeader: pointer.Bool(true),
+								ResponseForwarding: &dynamic.ResponseForwarding{
+									FlushInterval: ptypes.Duration(100 * time.Millisecond),
+								},
 							},
 						},
 					},
@@ -4269,7 +4555,7 @@ func TestLoadMixedRoutes(t *testing.T) {
 func Test_hostRule(t *testing.T) {
 	testCases := []struct {
 		desc         string
-		hostnames    []v1alpha2.Hostname
+		hostnames    []gatev1alpha2.Hostname
 		expectedRule string
 		expectErr    bool
 	}{
@@ -4279,23 +4565,23 @@ func Test_hostRule(t *testing.T) {
 		},
 		{
 			desc: "One Host",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"Foo",
 			},
 			expectedRule: "Host(`Foo`)",
 		},
 		{
 			desc: "Multiple Hosts",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"Foo",
 				"Bar",
 				"Bir",
 			},
-			expectedRule: "Host(`Foo`, `Bar`, `Bir`)",
+			expectedRule: "(Host(`Foo`) || Host(`Bar`) || Host(`Bir`))",
 		},
 		{
 			desc: "Multiple Hosts with empty one",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"Foo",
 				"",
 				"Bir",
@@ -4304,7 +4590,7 @@ func Test_hostRule(t *testing.T) {
 		},
 		{
 			desc: "Multiple empty hosts",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"",
 				"",
 				"",
@@ -4313,30 +4599,30 @@ func Test_hostRule(t *testing.T) {
 		},
 		{
 			desc: "Several Host and wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"*.bar.foo",
 				"bar.foo",
 				"foo.foo",
 			},
-			expectedRule: "(Host(`bar.foo`, `foo.foo`) || HostRegexp(`{subdomain:[a-zA-Z0-9-]+}.bar.foo`))",
+			expectedRule: "(HostRegexp(`^[a-zA-Z0-9-]+\\.bar\\.foo$`) || Host(`bar.foo`) || Host(`foo.foo`))",
 		},
 		{
 			desc: "Host with wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"*.bar.foo",
 			},
-			expectedRule: "HostRegexp(`{subdomain:[a-zA-Z0-9-]+}.bar.foo`)",
+			expectedRule: "HostRegexp(`^[a-zA-Z0-9-]+\\.bar\\.foo$`)",
 		},
 		{
 			desc: "Alone wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"*",
 				"*.foo.foo",
 			},
 		},
 		{
 			desc: "Multiple alone Wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"foo.foo",
 				"*.*",
 			},
@@ -4344,7 +4630,7 @@ func Test_hostRule(t *testing.T) {
 		},
 		{
 			desc: "Multiple Wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"foo.foo",
 				"*.toto.*.bar.foo",
 			},
@@ -4352,7 +4638,7 @@ func Test_hostRule(t *testing.T) {
 		},
 		{
 			desc: "Multiple subdomain with misplaced wildcard",
-			hostnames: []v1alpha2.Hostname{
+			hostnames: []gatev1alpha2.Hostname{
 				"foo.foo",
 				"toto.*.bar.foo",
 			},
@@ -4377,7 +4663,7 @@ func Test_hostRule(t *testing.T) {
 func Test_extractRule(t *testing.T) {
 	testCases := []struct {
 		desc          string
-		routeRule     v1alpha2.HTTPRouteRule
+		routeRule     gatev1alpha2.HTTPRouteRule
 		hostRule      string
 		expectedRule  string
 		expectedError bool
@@ -4393,8 +4679,8 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One HTTPRouteMatch with nil HTTPHeaderMatch",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{Headers: nil},
 				},
 			},
@@ -4402,10 +4688,10 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One HTTPRouteMatch with nil HTTPHeaderMatch Type",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Headers: []v1alpha2.HTTPHeaderMatch{
+						Headers: []gatev1alpha2.HTTPHeaderMatch{
 							{Type: nil, Name: "foo", Value: "bar"},
 						},
 					},
@@ -4415,8 +4701,8 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One HTTPRouteMatch with nil HTTPPathMatch",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{Path: nil},
 				},
 			},
@@ -4424,10 +4710,10 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One HTTPRouteMatch with nil HTTPPathMatch Type",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
+						Path: &gatev1alpha2.HTTPPathMatch{
 							Type:  nil,
 							Value: pointer.String("/foo/"),
 						},
@@ -4438,11 +4724,11 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One HTTPRouteMatch with nil HTTPPathMatch Values",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: nil,
 						},
 					},
@@ -4452,11 +4738,11 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One Path in matches",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
 					},
@@ -4466,16 +4752,16 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One Path in matches and another unknown",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
 					},
 					{
-						Path: &v1alpha2.HTTPPathMatch{
+						Path: &gatev1alpha2.HTTPPathMatch{
 							Type:  pathMatchTypePtr("unknown"),
 							Value: pointer.String("/foo/"),
 						},
@@ -4486,11 +4772,11 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "One Path in matches and another empty",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
 					},
@@ -4501,18 +4787,18 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "Path OR Header rules",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
 					},
 					{
-						Headers: []v1alpha2.HTTPHeaderMatch{
+						Headers: []gatev1alpha2.HTTPHeaderMatch{
 							{
-								Type:  headerMatchTypePtr(v1alpha2.HeaderMatchExact),
+								Type:  headerMatchTypePtr(gatev1alpha2.HeaderMatchExact),
 								Name:  "my-header",
 								Value: "foo",
 							},
@@ -4524,16 +4810,16 @@ func Test_extractRule(t *testing.T) {
 		},
 		{
 			desc: "Path && Header rules",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
-						Headers: []v1alpha2.HTTPHeaderMatch{
+						Headers: []gatev1alpha2.HTTPHeaderMatch{
 							{
-								Type:  headerMatchTypePtr(v1alpha2.HeaderMatchExact),
+								Type:  headerMatchTypePtr(gatev1alpha2.HeaderMatchExact),
 								Name:  "my-header",
 								Value: "foo",
 							},
@@ -4546,16 +4832,16 @@ func Test_extractRule(t *testing.T) {
 		{
 			desc:     "Host && Path && Header rules",
 			hostRule: "Host(`foo.com`)",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
-						Headers: []v1alpha2.HTTPHeaderMatch{
+						Headers: []gatev1alpha2.HTTPHeaderMatch{
 							{
-								Type:  headerMatchTypePtr(v1alpha2.HeaderMatchExact),
+								Type:  headerMatchTypePtr(gatev1alpha2.HeaderMatchExact),
 								Name:  "my-header",
 								Value: "foo",
 							},
@@ -4568,18 +4854,18 @@ func Test_extractRule(t *testing.T) {
 		{
 			desc:     "Host && (Path || Header) rules",
 			hostRule: "Host(`foo.com`)",
-			routeRule: v1alpha2.HTTPRouteRule{
-				Matches: []v1alpha2.HTTPRouteMatch{
+			routeRule: gatev1alpha2.HTTPRouteRule{
+				Matches: []gatev1alpha2.HTTPRouteMatch{
 					{
-						Path: &v1alpha2.HTTPPathMatch{
-							Type:  pathMatchTypePtr(v1alpha2.PathMatchExact),
+						Path: &gatev1alpha2.HTTPPathMatch{
+							Type:  pathMatchTypePtr(gatev1alpha2.PathMatchExact),
 							Value: pointer.String("/foo/"),
 						},
 					},
 					{
-						Headers: []v1alpha2.HTTPHeaderMatch{
+						Headers: []gatev1alpha2.HTTPHeaderMatch{
 							{
-								Type:  headerMatchTypePtr(v1alpha2.HeaderMatchExact),
+								Type:  headerMatchTypePtr(gatev1alpha2.HeaderMatchExact),
 								Name:  "my-header",
 								Value: "foo",
 							},
@@ -4611,7 +4897,7 @@ func Test_extractRule(t *testing.T) {
 func Test_hostSNIRule(t *testing.T) {
 	testCases := []struct {
 		desc         string
-		hostnames    []v1alpha2.Hostname
+		hostnames    []gatev1alpha2.Hostname
 		expectedRule string
 		expectError  bool
 	}{
@@ -4621,38 +4907,48 @@ func Test_hostSNIRule(t *testing.T) {
 		},
 		{
 			desc:         "Empty hostname",
-			hostnames:    []v1alpha2.Hostname{""},
+			hostnames:    []gatev1alpha2.Hostname{""},
 			expectedRule: "HostSNI(`*`)",
 		},
 		{
 			desc:        "Unsupported wildcard",
-			hostnames:   []v1alpha2.Hostname{"*"},
+			hostnames:   []gatev1alpha2.Hostname{"*"},
 			expectError: true,
 		},
 		{
+			desc:         "Supported wildcard",
+			hostnames:    []gatev1alpha2.Hostname{"*.foo"},
+			expectedRule: "HostSNIRegexp(`^[a-zA-Z0-9-]+\\.foo$`)",
+		},
+		{
 			desc:        "Multiple malformed wildcard",
-			hostnames:   []v1alpha2.Hostname{"*.foo.*"},
+			hostnames:   []gatev1alpha2.Hostname{"*.foo.*"},
 			expectError: true,
 		},
 		{
 			desc:         "Some empty hostnames",
-			hostnames:    []v1alpha2.Hostname{"foo", "", "bar"},
-			expectedRule: "HostSNI(`foo`,`bar`)",
+			hostnames:    []gatev1alpha2.Hostname{"foo", "", "bar"},
+			expectedRule: "HostSNI(`foo`) || HostSNI(`bar`)",
 		},
 		{
 			desc:         "Valid hostname",
-			hostnames:    []v1alpha2.Hostname{"foo"},
+			hostnames:    []gatev1alpha2.Hostname{"foo"},
 			expectedRule: "HostSNI(`foo`)",
 		},
 		{
 			desc:         "Multiple valid hostnames",
-			hostnames:    []v1alpha2.Hostname{"foo", "bar"},
-			expectedRule: "HostSNI(`foo`,`bar`)",
+			hostnames:    []gatev1alpha2.Hostname{"foo", "bar"},
+			expectedRule: "HostSNI(`foo`) || HostSNI(`bar`)",
+		},
+		{
+			desc:         "Multiple valid hostnames with wildcard",
+			hostnames:    []gatev1alpha2.Hostname{"bar.foo", "foo.foo", "*.foo"},
+			expectedRule: "HostSNI(`bar.foo`) || HostSNI(`foo.foo`) || HostSNIRegexp(`^[a-zA-Z0-9-]+\\.foo$`)",
 		},
 		{
 			desc:         "Multiple overlapping hostnames",
-			hostnames:    []v1alpha2.Hostname{"foo", "bar", "foo", "baz"},
-			expectedRule: "HostSNI(`foo`,`bar`,`baz`)",
+			hostnames:    []gatev1alpha2.Hostname{"foo", "bar", "foo", "baz"},
+			expectedRule: "HostSNI(`foo`) || HostSNI(`bar`) || HostSNI(`baz`)",
 		},
 	}
 
@@ -4676,49 +4972,49 @@ func Test_hostSNIRule(t *testing.T) {
 func Test_shouldAttach(t *testing.T) {
 	testCases := []struct {
 		desc           string
-		gateway        *v1alpha2.Gateway
-		listener       v1alpha2.Listener
+		gateway        *gatev1alpha2.Gateway
+		listener       gatev1alpha2.Listener
 		routeNamespace string
-		routeSpec      v1alpha2.CommonRouteSpec
+		routeSpec      gatev1alpha2.CommonRouteSpec
 		expectedAttach bool
 	}{
 		{
 			desc: "No ParentRefs",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
 				ParentRefs: nil,
 			},
 			expectedAttach: false,
 		},
 		{
 			desc: "Unsupported Kind",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("default"),
 						Kind:        kindPtr("Foo"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4726,18 +5022,18 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Unsupported Group",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
@@ -4751,23 +5047,23 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Kind is nil",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("default"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4775,18 +5071,18 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Group is nil",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
@@ -4799,23 +5095,23 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "SectionName does not match a listener desc",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("default"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 						Kind:        kindPtr("Gateway"),
 					},
 				},
@@ -4824,23 +5120,23 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Namespace does not match the Gateway namespace",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("bar"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 						Kind:        kindPtr("Gateway"),
 					},
 				},
@@ -4849,22 +5145,22 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Route namespace does not match the Gateway namespace",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "bar",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 						Kind:        kindPtr("Gateway"),
 					},
 				},
@@ -4873,24 +5169,24 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Unsupported Kind",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("bar"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("default"),
 						Kind:        kindPtr("Gateway"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4898,23 +5194,23 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Route namespace matches the Gateway namespace",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "default",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("foo"),
 						Name:        "gateway",
 						Kind:        kindPtr("Gateway"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4922,24 +5218,24 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Namespace matches the Gateway namespace",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "bar",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						SectionName: sectionNamePtr("foo"),
 						Name:        "gateway",
 						Namespace:   namespacePtr("default"),
 						Kind:        kindPtr("Gateway"),
-						Group:       groupPtr(v1alpha2.GroupName),
+						Group:       groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4947,29 +5243,29 @@ func Test_shouldAttach(t *testing.T) {
 		},
 		{
 			desc: "Only one ParentRef matches the Gateway",
-			gateway: &v1alpha2.Gateway{
+			gateway: &gatev1alpha2.Gateway{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "gateway",
 					Namespace: "default",
 				},
 			},
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Name: "foo",
 			},
 			routeNamespace: "bar",
-			routeSpec: v1alpha2.CommonRouteSpec{
-				ParentRefs: []v1alpha2.ParentRef{
+			routeSpec: gatev1alpha2.CommonRouteSpec{
+				ParentRefs: []gatev1alpha2.ParentRef{
 					{
 						Name:      "gateway2",
 						Namespace: namespacePtr("default"),
 						Kind:      kindPtr("Gateway"),
-						Group:     groupPtr(v1alpha2.GroupName),
+						Group:     groupPtr(gatev1alpha2.GroupName),
 					},
 					{
 						Name:      "gateway",
 						Namespace: namespacePtr("default"),
 						Kind:      kindPtr("Gateway"),
-						Group:     groupPtr(v1alpha2.GroupName),
+						Group:     groupPtr(gatev1alpha2.GroupName),
 					},
 				},
 			},
@@ -4989,99 +5285,99 @@ func Test_shouldAttach(t *testing.T) {
 }
 
 func Test_matchingHostnames(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		desc      string
-		listener  v1alpha2.Listener
-		hostnames []v1alpha2.Hostname
-		want      []v1alpha2.Hostname
+		listener  gatev1alpha2.Listener
+		hostnames []gatev1alpha2.Hostname
+		want      []gatev1alpha2.Hostname
 	}{
 		{
 			desc: "Empty",
 		},
 		{
 			desc: "Only listener hostname",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("foo.com"),
 			},
-			want: []v1alpha2.Hostname{"foo.com"},
+			want: []gatev1alpha2.Hostname{"foo.com"},
 		},
 		{
 			desc:      "Only Route hostname",
-			hostnames: []v1alpha2.Hostname{"foo.com"},
-			want:      []v1alpha2.Hostname{"foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"foo.com"},
+			want:      []gatev1alpha2.Hostname{"foo.com"},
 		},
 		{
 			desc: "Matching hostname",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"foo.com"},
-			want:      []v1alpha2.Hostname{"foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"foo.com"},
+			want:      []gatev1alpha2.Hostname{"foo.com"},
 		},
 		{
 			desc: "Matching hostname with wildcard",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"*.foo.com"},
-			want:      []v1alpha2.Hostname{"*.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"*.foo.com"},
+			want:      []gatev1alpha2.Hostname{"*.foo.com"},
 		},
 		{
 			desc: "Matching subdomain with listener wildcard",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"bar.foo.com"},
-			want:      []v1alpha2.Hostname{"bar.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"bar.foo.com"},
+			want:      []gatev1alpha2.Hostname{"bar.foo.com"},
 		},
 		{
 			desc: "Matching subdomain with route hostname wildcard",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("bar.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"*.foo.com"},
-			want:      []v1alpha2.Hostname{"bar.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"*.foo.com"},
+			want:      []gatev1alpha2.Hostname{"bar.foo.com"},
 		},
 		{
 			desc: "Non matching root domain with listener wildcard",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"foo.com"},
 		},
 		{
 			desc: "Non matching root domain with route hostname wildcard",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"*.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"*.foo.com"},
 		},
 		{
 			desc: "Multiple route hostnames with one matching route hostname",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"bar.com", "test.foo.com", "test.buz.com"},
-			want:      []v1alpha2.Hostname{"test.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"bar.com", "test.foo.com", "test.buz.com"},
+			want:      []gatev1alpha2.Hostname{"test.foo.com"},
 		},
 		{
 			desc: "Multiple route hostnames with non matching route hostname",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.fuz.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"bar.com", "test.foo.com", "test.buz.com"},
+			hostnames: []gatev1alpha2.Hostname{"bar.com", "test.foo.com", "test.buz.com"},
 		},
 		{
 			desc: "Multiple route hostnames with multiple matching route hostnames",
-			listener: v1alpha2.Listener{
+			listener: gatev1alpha2.Listener{
 				Hostname: hostnamePtr("*.foo.com"),
 			},
-			hostnames: []v1alpha2.Hostname{"toto.foo.com", "test.foo.com", "test.buz.com"},
-			want:      []v1alpha2.Hostname{"toto.foo.com", "test.foo.com"},
+			hostnames: []gatev1alpha2.Hostname{"toto.foo.com", "test.foo.com", "test.buz.com"},
+			want:      []gatev1alpha2.Hostname{"toto.foo.com", "test.foo.com"},
 		},
 	}
 
-	for _, test := range tests {
+	for _, test := range testCases {
 		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
@@ -5093,11 +5389,11 @@ func Test_matchingHostnames(t *testing.T) {
 }
 
 func Test_getAllowedRoutes(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		desc                string
-		listener            v1alpha2.Listener
-		supportedRouteKinds []v1alpha2.RouteGroupKind
-		wantKinds           []v1alpha2.RouteGroupKind
+		listener            gatev1alpha2.Listener
+		supportedRouteKinds []gatev1alpha2.RouteGroupKind
+		wantKinds           []gatev1alpha2.RouteGroupKind
 		wantErr             bool
 	}{
 		{
@@ -5105,95 +5401,95 @@ func Test_getAllowedRoutes(t *testing.T) {
 		},
 		{
 			desc: "Empty AllowedRoutes",
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
-			wantKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			wantKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 		},
 		{
 			desc: "AllowedRoutes with unsupported Group",
-			listener: v1alpha2.Listener{
-				AllowedRoutes: &v1alpha2.AllowedRoutes{
-					Kinds: []v1alpha2.RouteGroupKind{{
+			listener: gatev1alpha2.Listener{
+				AllowedRoutes: &gatev1alpha2.AllowedRoutes{
+					Kinds: []gatev1alpha2.RouteGroupKind{{
 						Kind: kindTLSRoute, Group: groupPtr("foo"),
 					}},
 				},
 			},
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 			wantErr: true,
 		},
 		{
 			desc: "AllowedRoutes with nil Group",
-			listener: v1alpha2.Listener{
-				AllowedRoutes: &v1alpha2.AllowedRoutes{
-					Kinds: []v1alpha2.RouteGroupKind{{
+			listener: gatev1alpha2.Listener{
+				AllowedRoutes: &gatev1alpha2.AllowedRoutes{
+					Kinds: []gatev1alpha2.RouteGroupKind{{
 						Kind: kindTLSRoute, Group: nil,
 					}},
 				},
 			},
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 			wantErr: true,
 		},
 		{
 			desc: "AllowedRoutes with unsupported Kind",
-			listener: v1alpha2.Listener{
-				AllowedRoutes: &v1alpha2.AllowedRoutes{
-					Kinds: []v1alpha2.RouteGroupKind{{
-						Kind: "foo", Group: groupPtr(v1alpha2.GroupName),
+			listener: gatev1alpha2.Listener{
+				AllowedRoutes: &gatev1alpha2.AllowedRoutes{
+					Kinds: []gatev1alpha2.RouteGroupKind{{
+						Kind: "foo", Group: groupPtr(gatev1alpha2.GroupName),
 					}},
 				},
 			},
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 			wantErr: true,
 		},
 		{
 			desc: "Supported AllowedRoutes",
-			listener: v1alpha2.Listener{
-				AllowedRoutes: &v1alpha2.AllowedRoutes{
-					Kinds: []v1alpha2.RouteGroupKind{{
-						Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName),
+			listener: gatev1alpha2.Listener{
+				AllowedRoutes: &gatev1alpha2.AllowedRoutes{
+					Kinds: []gatev1alpha2.RouteGroupKind{{
+						Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName),
 					}},
 				},
 			},
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
-			wantKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
+			wantKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 		},
 		{
 			desc: "Supported AllowedRoutes with duplicates",
-			listener: v1alpha2.Listener{
-				AllowedRoutes: &v1alpha2.AllowedRoutes{
-					Kinds: []v1alpha2.RouteGroupKind{
-						{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
-						{Kind: kindTCPRoute, Group: groupPtr(v1alpha2.GroupName)},
-						{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
-						{Kind: kindTCPRoute, Group: groupPtr(v1alpha2.GroupName)},
+			listener: gatev1alpha2.Listener{
+				AllowedRoutes: &gatev1alpha2.AllowedRoutes{
+					Kinds: []gatev1alpha2.RouteGroupKind{
+						{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
+						{Kind: kindTCPRoute, Group: groupPtr(gatev1alpha2.GroupName)},
+						{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
+						{Kind: kindTCPRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 					},
 				},
 			},
-			supportedRouteKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
-				{Kind: kindTCPRoute, Group: groupPtr(v1alpha2.GroupName)},
+			supportedRouteKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
+				{Kind: kindTCPRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
-			wantKinds: []v1alpha2.RouteGroupKind{
-				{Kind: kindTLSRoute, Group: groupPtr(v1alpha2.GroupName)},
-				{Kind: kindTCPRoute, Group: groupPtr(v1alpha2.GroupName)},
+			wantKinds: []gatev1alpha2.RouteGroupKind{
+				{Kind: kindTLSRoute, Group: groupPtr(gatev1alpha2.GroupName)},
+				{Kind: kindTCPRoute, Group: groupPtr(gatev1alpha2.GroupName)},
 			},
 		},
 	}
 
-	for _, test := range tests {
+	for _, test := range testCases {
 		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
@@ -5210,26 +5506,65 @@ func Test_getAllowedRoutes(t *testing.T) {
 	}
 }
 
-func hostnamePtr(hostname v1alpha2.Hostname) *v1alpha2.Hostname {
+func Test_makeListenerKey(t *testing.T) {
+	testCases := []struct {
+		desc        string
+		listener    gatev1alpha2.Listener
+		expectedKey string
+	}{
+		{
+			desc:        "empty",
+			expectedKey: "||0",
+		},
+		{
+			desc: "listener with port, protocol and hostname",
+			listener: gatev1alpha2.Listener{
+				Port:     443,
+				Protocol: gatev1alpha2.HTTPSProtocolType,
+				Hostname: hostnamePtr("www.example.com"),
+			},
+			expectedKey: "HTTPS|www.example.com|443",
+		},
+		{
+			desc: "listener with port, protocol and nil hostname",
+			listener: gatev1alpha2.Listener{
+				Port:     443,
+				Protocol: gatev1alpha2.HTTPSProtocolType,
+			},
+			expectedKey: "HTTPS||443",
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, test.expectedKey, makeListenerKey(test.listener))
+		})
+	}
+}
+
+func hostnamePtr(hostname gatev1alpha2.Hostname) *gatev1alpha2.Hostname {
 	return &hostname
 }
 
-func groupPtr(group v1alpha2.Group) *v1alpha2.Group {
+func groupPtr(group gatev1alpha2.Group) *gatev1alpha2.Group {
 	return &group
 }
 
-func sectionNamePtr(sectionName v1alpha2.SectionName) *v1alpha2.SectionName {
+func sectionNamePtr(sectionName gatev1alpha2.SectionName) *gatev1alpha2.SectionName {
 	return &sectionName
 }
 
-func namespacePtr(namespace v1alpha2.Namespace) *v1alpha2.Namespace {
+func namespacePtr(namespace gatev1alpha2.Namespace) *gatev1alpha2.Namespace {
 	return &namespace
 }
 
-func kindPtr(kind v1alpha2.Kind) *v1alpha2.Kind {
+func kindPtr(kind gatev1alpha2.Kind) *gatev1alpha2.Kind {
 	return &kind
 }
 
-func pathMatchTypePtr(p v1alpha2.PathMatchType) *v1alpha2.PathMatchType { return &p }
+func pathMatchTypePtr(p gatev1alpha2.PathMatchType) *gatev1alpha2.PathMatchType { return &p }
 
-func headerMatchTypePtr(h v1alpha2.HeaderMatchType) *v1alpha2.HeaderMatchType { return &h }
+func headerMatchTypePtr(h gatev1alpha2.HeaderMatchType) *gatev1alpha2.HeaderMatchType { return &h }

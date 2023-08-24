@@ -1,3 +1,8 @@
+---
+title: "Traefik EntryPoints Documentation"
+description: "For routing and load balancing in Traefik Proxy, EntryPoints define which port will receive packets and whether in UDP or TCP. Read the technical documentation."
+---
+
 # EntryPoints
 
 Opening Connections for Incoming Requests
@@ -100,6 +105,8 @@ They can be defined by using a file (YAML or TOML) or CLI arguments.
     entryPoints:
       name:
         address: ":8888" # same as ":8888/tcp"
+        http2:
+          maxConcurrentStreams: 42
         http3:
           advertisedPort: 8888
         transport:
@@ -127,6 +134,8 @@ They can be defined by using a file (YAML or TOML) or CLI arguments.
     [entryPoints]
       [entryPoints.name]
         address = ":8888" # same as ":8888/tcp"
+        [entryPoints.name.http2]
+          maxConcurrentStreams = 42
         [entryPoints.name.http3]
           advertisedPort = 8888
         [entryPoints.name.transport]
@@ -148,6 +157,7 @@ They can be defined by using a file (YAML or TOML) or CLI arguments.
     ```bash tab="CLI"
     ## Static configuration
     --entryPoints.name.address=:8888 # same as :8888/tcp
+    --entryPoints.name.http2.maxConcurrentStreams=42
     --entryPoints.name.http3.advertisedport=8888
     --entryPoints.name.transport.lifeCycle.requestAcceptGraceTimeout=42
     --entryPoints.name.transport.lifeCycle.graceTimeOut=42
@@ -223,43 +233,111 @@ If both TCP and UDP are wanted for the same port, two entryPoints definitions ar
 
     Full details for how to specify `address` can be found in [net.Listen](https://golang.org/pkg/net/#Listen) (and [net.Dial](https://golang.org/pkg/net/#Dial)) of the doc for go.
 
+### AsDefault
+
+_Optional, Default=false_
+
+The `AsDefault` option marks the EntryPoint to be in the list of default EntryPoints.
+EntryPoints in this list are used (by default) on HTTP and TCP routers that do not define their own [EntryPoints option](./routers/index.md#entrypoints).
+
+!!! info "List of default EntryPoints"
+
+    If there is no EntryPoint with the `AsDefault` option set to `true`, 
+    then the list of default EntryPoints includes all HTTP/TCP EntryPoints.
+
+    If at least one EntryPoint has the `AsDefault` option set to `true`,
+    then the list of default EntryPoints includes only EntryPoints that have the `AsDefault` option set to `true`.
+
+    Some built-in EntryPoints are always excluded from the list, namely: `traefik`, `traefikhub-api`, and `traefikhub-tunl`.
+
+!!! warning "Only TCP and HTTP"
+
+    The `AsDefault` option has no effect on UDP EntryPoints.
+    When a UDP router does not define the [EntryPoints option](./routers/index.md#entrypoints_2),
+    it is attached to all available UDP EntryPoints.
+
+??? example "Defining only one EntryPoint as default"
+
+    ```yaml tab="File (yaml)"
+    entryPoints:
+      web:
+        address: ":80"
+      websecure:
+        address: ":443"
+        asDefault: true
+    ```
+
+    ```toml tab="File (TOML)"
+    [entryPoints.web]
+      address = ":80"
+    [entryPoints.websecure]
+      address = ":443"
+      asDefault = true
+    ```
+
+    ```bash tab="CLI"
+    --entrypoints.web.address=:80
+    --entrypoints.websecure.address=:443
+    --entrypoints.websecure.asDefault=true
+    ```
+
+### HTTP/2
+
+#### `maxConcurrentStreams`
+
+_Optional, Default=250_
+
+`maxConcurrentStreams` specifies the number of concurrent streams per connection that each client is allowed to initiate.
+The `maxConcurrentStreams` value must be greater than zero.
+
+```yaml tab="File (YAML)"
+entryPoints:
+  foo:
+    http2:
+      maxConcurrentStreams: 250
+```
+
+```toml tab="File (TOML)"
+[entryPoints.foo]
+  [entryPoints.foo.http2]
+    maxConcurrentStreams = 250
+```
+
+```bash tab="CLI"
+--entryPoints.name.http2.maxConcurrentStreams=250
+```
+
 ### HTTP/3
 
 #### `http3`
 
 `http3` enables HTTP/3 protocol on the entryPoint.
-HTTP/3 requires a TCP entryPoint, as HTTP/3 always starts as a TCP connection that then gets upgraded to UDP.
-In most scenarios, this entryPoint is the same as the one used for TLS traffic.
+HTTP/3 requires a TCP entryPoint,
+as HTTP/3 always starts as a TCP connection that then gets upgraded to UDP.
+In most scenarios,
+this entryPoint is the same as the one used for TLS traffic.
+
+```yaml tab="File (YAML)"
+entryPoints:
+  name:
+    http3: {}
+```
+
+```toml tab="File (TOML)"
+[entryPoints.name.http3]
+```
+
+```bash tab="CLI"
+--entrypoints.name.http3
+```
 
 ??? info "HTTP/3 uses UDP+TLS"
 
-    As HTTP/3 uses UDP, you can't have a TCP entryPoint with HTTP/3 on the same port as a UDP entryPoint.
-    Since HTTP/3 requires the use of TLS, only routers with TLS enabled will be usable with HTTP/3.
-
-!!! warning "Enabling Experimental HTTP/3"
-
-    As the HTTP/3 spec is still in draft, HTTP/3 support in Traefik is an experimental feature and needs to be activated 
-    in the experimental section of the static configuration.
-    
-    ```yaml tab="File (YAML)"
-    experimental:
-      http3: true
-
-    entryPoints:
-      name:
-        http3: {}
-    ```
-
-    ```toml tab="File (TOML)"
-    [experimental]
-      http3 = true
-    
-    [entryPoints.name.http3]
-    ```
-    
-    ```bash tab="CLI"
-    --experimental.http3=true --entrypoints.name.http3
-    ```
+    As HTTP/3 actually uses UDP, when traefik is configured with a TCP entryPoint on port N with HTTP/3 enabled,
+    the underlying HTTP/3 server that is started automatically listens on UDP port N too. As a consequence,
+    it means port N cannot be used by another UDP entryPoint.
+    Since HTTP/3 requires the use of TLS,
+    only routers with TLS enabled will be usable with HTTP/3.
 
 #### `advertisedPort`
 
@@ -270,9 +348,6 @@ It can be used to override the authority in the `alt-svc` header, for example if
 !!! info "http3.advertisedPort"
 
     ```yaml tab="File (YAML)"
-    experimental:
-      http3: true
-
     entryPoints:
       name:
         http3:
@@ -280,15 +355,12 @@ It can be used to override the authority in the `alt-svc` header, for example if
     ```
 
     ```toml tab="File (TOML)"
-    [experimental]
-      http3 = true
-    
     [entryPoints.name.http3]
       advertisedPort = 443
     ```
     
     ```bash tab="CLI"
-    --experimental.http3=true --entrypoints.name.http3.advertisedport=443
+    --entrypoints.name.http3.advertisedport=443
     ```
 
 ### Forwarded Headers
@@ -767,7 +839,7 @@ This section is a convenience to enable (permanent) redirecting of all incoming 
 
 ??? info "`entryPoint.priority`"
 
-    _Optional, Default=1_
+    _Optional, Default=MaxInt32-1 (2147483646)_
 
     Priority of the generated router.
 
@@ -794,6 +866,44 @@ This section is a convenience to enable (permanent) redirecting of all incoming 
     ```bash tab="CLI"
     --entrypoints.foo.http.redirections.entrypoint.priority=10
     ```
+
+### EncodeQuerySemicolons
+
+_Optional, Default=false_
+
+The `encodeQuerySemicolons` option allows to enable query semicolons encoding.
+One could use this option to avoid non-encoded semicolons to be interpreted as query parameter separators by Traefik.
+When using this option, the non-encoded semicolons characters in query will be transmitted encoded to the backend.
+
+```yaml tab="File (YAML)"
+entryPoints:
+  websecure:
+    address: ':443'
+    http:
+      encodeQuerySemicolons: true
+```
+
+```toml tab="File (TOML)"
+[entryPoints.websecure]
+  address = ":443"
+
+  [entryPoints.websecure.http]
+    encodeQuerySemicolons = true
+```
+
+```bash tab="CLI"
+--entrypoints.websecure.address=:443
+--entrypoints.websecure.http.encodequerysemicolons=true
+```
+
+#### Examples
+
+| EncodeQuerySemicolons | Request Query       | Resulting Request Query |
+|-----------------------|---------------------|-------------------------|
+| false                 | foo=bar;baz=bar     | foo=bar&baz=bar         |
+| true                  | foo=bar;baz=bar     | foo=bar%3Bbaz=bar       |
+| false                 | foo=bar&baz=bar;foo | foo=bar&baz=bar&foo     |
+| true                  | foo=bar&baz=bar;foo | foo=bar&baz=bar%3Bfoo   |
 
 ### Middlewares
 
@@ -929,3 +1039,5 @@ entryPoints:
 entrypoints.foo.address=:8000/udp
 entrypoints.foo.udp.timeout=10s
 ```
+
+{!traefik-for-business-applications.md!}

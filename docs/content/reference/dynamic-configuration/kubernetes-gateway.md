@@ -1,3 +1,8 @@
+---
+title: "Traefik Kubernetes Routing"
+description: "Reference the dynamic configuration with the Kubernetes Gateway provider in Traefik Proxy. Read the technical documentation."
+---
+
 # Kubernetes Configuration Reference
 
 Dynamic configuration with Kubernetes Gateway provider.
@@ -24,3 +29,5 @@ Dynamic configuration with Kubernetes Gateway provider.
 ```yaml
 --8<-- "content/reference/dynamic-configuration/kubernetes-gateway-rbac.yml"
 ```
+
+{!traefik-api-management-kubernetes.md!}

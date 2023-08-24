@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/provider"
-	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
-	"github.com/traefik/traefik/v2/pkg/tls"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/logs"
+	"github.com/traefik/traefik/v3/pkg/provider"
+	traefikv1alpha1 "github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd/traefikio/v1alpha1"
+	"github.com/traefik/traefik/v3/pkg/tls"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -32,8 +33,7 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 	}
 
 	for _, ingressRoute := range client.GetIngressRoutes() {
-		ctxRt := log.With(ctx, log.Str("ingress", ingressRoute.Name), log.Str("namespace", ingressRoute.Namespace))
-		logger := log.FromContext(ctxRt)
+		logger := log.Ctx(ctx).With().Str("ingress", ingressRoute.Name).Str("namespace", ingressRoute.Namespace).Logger()
 
 		// TODO keep the name ingressClass?
 		if !shouldProcessIngress(p.IngressClass, ingressRoute.Annotations[annotationKubernetesIngressClass]) {
@@ -42,7 +42,7 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 
 		err := getTLSHTTP(ctx, ingressRoute, client, tlsConfigs)
 		if err != nil {
-			logger.Errorf("Error configuring TLS: %v", err)
+			logger.Error().Err(err).Msg("Error configuring TLS")
 		}
 
 		ingressName := ingressRoute.Name
@@ -50,28 +50,33 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 			ingressName = ingressRoute.GenerateName
 		}
 
-		cb := configBuilder{client: client, allowCrossNamespace: p.AllowCrossNamespace, allowExternalNameServices: p.AllowExternalNameServices}
+		cb := configBuilder{
+			client:                    client,
+			allowCrossNamespace:       p.AllowCrossNamespace,
+			allowExternalNameServices: p.AllowExternalNameServices,
+			allowEmptyServices:        p.AllowEmptyServices,
+		}
 
 		for _, route := range ingressRoute.Spec.Routes {
 			if route.Kind != "Rule" {
-				logger.Errorf("Unsupported match kind: %s. Only \"Rule\" is supported for now.", route.Kind)
+				logger.Error().Msgf("Unsupported match kind: %s. Only \"Rule\" is supported for now.", route.Kind)
 				continue
 			}
 
 			if len(route.Match) == 0 {
-				logger.Errorf("Empty match rule")
+				logger.Error().Msg("Empty match rule")
 				continue
 			}
 
 			serviceKey, err := makeServiceKey(route.Match, ingressName)
 			if err != nil {
-				logger.Error(err)
+				logger.Error().Err(err).Send()
 				continue
 			}
 
 			mds, err := p.makeMiddlewareKeys(ctx, ingressRoute.Namespace, route.Middlewares)
 			if err != nil {
-				logger.Errorf("Failed to create middleware keys: %v", err)
+				logger.Error().Err(err).Msg("Failed to create middleware keys")
 				continue
 			}
 
@@ -79,21 +84,21 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 			serviceName := normalized
 
 			if len(route.Services) > 1 {
-				spec := v1alpha1.ServiceSpec{
-					Weighted: &v1alpha1.WeightedRoundRobin{
+				spec := traefikv1alpha1.TraefikServiceSpec{
+					Weighted: &traefikv1alpha1.WeightedRoundRobin{
 						Services: route.Services,
 					},
 				}
 
 				errBuild := cb.buildServicesLB(ctx, ingressRoute.Namespace, spec, serviceName, conf.Services)
 				if errBuild != nil {
-					logger.Error(errBuild)
+					logger.Error().Err(errBuild).Send()
 					continue
 				}
 			} else if len(route.Services) == 1 {
 				fullName, serversLB, err := cb.nameAndService(ctx, ingressRoute.Namespace, route.Services[0].LoadBalancerSpec)
 				if err != nil {
-					logger.Error(err)
+					logger.Error().Err(err).Send()
 					continue
 				}
 
@@ -129,12 +134,12 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 						tlsOptionsName = makeID(ns, tlsOptionsName)
 					} else if len(ns) > 0 {
 						logger.
-							WithField("TLSOption", ingressRoute.Spec.TLS.Options.Name).
-							Warnf("Namespace %q is ignored in cross-provider context", ns)
+							Warn().Str("TLSOption", ingressRoute.Spec.TLS.Options.Name).
+							Msgf("Namespace %q is ignored in cross-provider context", ns)
 					}
 
 					if !isNamespaceAllowed(p.AllowCrossNamespace, ingressRoute.Namespace, ns) {
-						logger.Errorf("TLSOption %s/%s is not in the IngressRoute namespace %s",
+						logger.Error().Msgf("TLSOption %s/%s is not in the IngressRoute namespace %s",
 							ns, ingressRoute.Spec.TLS.Options.Name, ingressRoute.Namespace)
 						continue
 					}
@@ -143,6 +148,8 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 				}
 			}
 
+			p.applyRouterTransform(ctx, r, ingressRoute)
+
 			conf.Routers[normalized] = r
 		}
 	}
@@ -150,7 +157,7 @@ func (p *Provider) loadIngressRouteConfiguration(ctx context.Context, client Cli
 	return conf
 }
 
-func (p *Provider) makeMiddlewareKeys(ctx context.Context, ingRouteNamespace string, middlewares []v1alpha1.MiddlewareRef) ([]string, error) {
+func (p *Provider) makeMiddlewareKeys(ctx context.Context, ingRouteNamespace string, middlewares []traefikv1alpha1.MiddlewareRef) ([]string, error) {
 	var mds []string
 
 	for _, mi := range middlewares {
@@ -165,9 +172,9 @@ func (p *Provider) makeMiddlewareKeys(ctx context.Context, ingRouteNamespace str
 
 		if strings.Contains(name, providerNamespaceSeparator) {
 			if len(mi.Namespace) > 0 {
-				log.FromContext(ctx).
-					WithField(log.MiddlewareName, mi.Name).
-					Warnf("namespace %q is ignored in cross-provider context", mi.Namespace)
+				log.Ctx(ctx).
+					Warn().Str(logs.MiddlewareName, mi.Name).
+					Msgf("namespace %q is ignored in cross-provider context", mi.Namespace)
 			}
 
 			mds = append(mds, name)
@@ -193,11 +200,12 @@ type configBuilder struct {
 	client                    Client
 	allowCrossNamespace       bool
 	allowExternalNameServices bool
+	allowEmptyServices        bool
 }
 
 // buildTraefikService creates the configuration for the traefik service defined in tService,
 // and adds it to the given conf map.
-func (c configBuilder) buildTraefikService(ctx context.Context, tService *v1alpha1.TraefikService, conf map[string]*dynamic.Service) error {
+func (c configBuilder) buildTraefikService(ctx context.Context, tService *traefikv1alpha1.TraefikService, conf map[string]*dynamic.Service) error {
 	id := provider.Normalize(makeID(tService.Namespace, tService.Name))
 
 	if tService.Spec.Weighted != nil {
@@ -211,7 +219,7 @@ func (c configBuilder) buildTraefikService(ctx context.Context, tService *v1alph
 
 // buildServicesLB creates the configuration for the load-balancer of services named id, and defined in tService.
 // It adds it to the given conf map.
-func (c configBuilder) buildServicesLB(ctx context.Context, namespace string, tService v1alpha1.ServiceSpec, id string, conf map[string]*dynamic.Service) error {
+func (c configBuilder) buildServicesLB(ctx context.Context, namespace string, tService traefikv1alpha1.TraefikServiceSpec, id string, conf map[string]*dynamic.Service) error {
 	var wrrServices []dynamic.WRRService
 
 	for _, service := range tService.Weighted.Services {
@@ -246,7 +254,7 @@ func (c configBuilder) buildServicesLB(ctx context.Context, namespace string, tS
 
 // buildMirroring creates the configuration for the mirroring service named id, and defined by tService.
 // It adds it to the given conf map.
-func (c configBuilder) buildMirroring(ctx context.Context, tService *v1alpha1.TraefikService, id string, conf map[string]*dynamic.Service) error {
+func (c configBuilder) buildMirroring(ctx context.Context, tService *traefikv1alpha1.TraefikService, id string, conf map[string]*dynamic.Service) error {
 	fullNameMain, k8sService, err := c.nameAndService(ctx, tService.Namespace, tService.Spec.Mirroring.LoadBalancerSpec)
 	if err != nil {
 		return err
@@ -285,7 +293,7 @@ func (c configBuilder) buildMirroring(ctx context.Context, tService *v1alpha1.Tr
 }
 
 // buildServersLB creates the configuration for the load-balancer of servers defined by svc.
-func (c configBuilder) buildServersLB(namespace string, svc v1alpha1.LoadBalancerSpec) (*dynamic.Service, error) {
+func (c configBuilder) buildServersLB(namespace string, svc traefikv1alpha1.LoadBalancerSpec) (*dynamic.Service, error) {
 	servers, err := c.loadServers(namespace, svc)
 	if err != nil {
 		return nil, err
@@ -301,7 +309,13 @@ func (c configBuilder) buildServersLB(namespace string, svc v1alpha1.LoadBalance
 		passHostHeader := true
 		lb.PassHostHeader = &passHostHeader
 	}
-	lb.ResponseForwarding = conf.ResponseForwarding
+
+	if conf.ResponseForwarding != nil && conf.ResponseForwarding.FlushInterval != "" {
+		err := lb.ResponseForwarding.FlushInterval.Set(conf.ResponseForwarding.FlushInterval)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse flushInterval: %w", err)
+		}
+	}
 
 	lb.Sticky = svc.Sticky
 
@@ -332,7 +346,7 @@ func (c *configBuilder) makeServersTransportKey(parentNamespace string, serversT
 	return provider.Normalize(makeID(parentNamespace, serversTransportName)), nil
 }
 
-func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBalancerSpec) ([]dynamic.Server, error) {
+func (c configBuilder) loadServers(parentNamespace string, svc traefikv1alpha1.LoadBalancerSpec) ([]dynamic.Server, error) {
 	strategy := svc.Strategy
 	if strategy == "" {
 		strategy = roundRobinStrategy
@@ -362,6 +376,20 @@ func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBala
 		return nil, err
 	}
 
+	if svc.NativeLB {
+		address, err := getNativeServiceAddress(*service, *svcPort)
+		if err != nil {
+			return nil, fmt.Errorf("getting native Kubernetes Service address: %w", err)
+		}
+
+		protocol, err := parseServiceProtocol(svc.Scheme, svcPort.Name, svcPort.Port)
+		if err != nil {
+			return nil, err
+		}
+
+		return []dynamic.Server{{URL: fmt.Sprintf("%s://%s", protocol, address)}}, nil
+	}
+
 	var servers []dynamic.Server
 	if service.Spec.Type == corev1.ServiceTypeExternalName {
 		if !c.allowExternalNameServices {
@@ -387,12 +415,13 @@ func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBala
 	if !endpointsExists {
 		return nil, fmt.Errorf("endpoints not found for %s/%s", namespace, sanitizedName)
 	}
-	if len(endpoints.Subsets) == 0 {
+
+	if len(endpoints.Subsets) == 0 && !c.allowEmptyServices {
 		return nil, fmt.Errorf("subset not found for %s/%s", namespace, sanitizedName)
 	}
 
-	var port int32
 	for _, subset := range endpoints.Subsets {
+		var port int32
 		for _, p := range subset.Ports {
 			if svcPort.Name == p.Name {
 				port = p.Port
@@ -401,7 +430,7 @@ func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBala
 		}
 
 		if port == 0 {
-			return nil, fmt.Errorf("cannot define a port for %s/%s", namespace, sanitizedName)
+			continue
 		}
 
 		protocol, err := parseServiceProtocol(svc.Scheme, svcPort.Name, svcPort.Port)
@@ -425,8 +454,8 @@ func (c configBuilder) loadServers(parentNamespace string, svc v1alpha1.LoadBala
 // In addition, if the service is a Kubernetes one,
 // it generates and returns the configuration part for such a service,
 // so that the caller can add it to the global config map.
-func (c configBuilder) nameAndService(ctx context.Context, parentNamespace string, service v1alpha1.LoadBalancerSpec) (string, *dynamic.Service, error) {
-	svcCtx := log.With(ctx, log.Str(log.ServiceName, service.Name))
+func (c configBuilder) nameAndService(ctx context.Context, parentNamespace string, service traefikv1alpha1.LoadBalancerSpec) (string, *dynamic.Service, error) {
+	svcCtx := log.Ctx(ctx).With().Str(logs.ServiceName, service.Name).Logger().WithContext(ctx)
 
 	namespace := namespaceOrFallback(service, parentNamespace)
 
@@ -460,7 +489,7 @@ func splitSvcNameProvider(name string) (string, string) {
 	return svc, pvd
 }
 
-func fullServiceName(ctx context.Context, namespace string, service v1alpha1.LoadBalancerSpec, port intstr.IntOrString) string {
+func fullServiceName(ctx context.Context, namespace string, service traefikv1alpha1.LoadBalancerSpec, port intstr.IntOrString) string {
 	if (port.Type == intstr.Int && port.IntVal != 0) || (port.Type == intstr.String && port.StrVal != "") {
 		return provider.Normalize(fmt.Sprintf("%s-%s-%s", namespace, service.Name, &port))
 	}
@@ -475,25 +504,26 @@ func fullServiceName(ctx context.Context, namespace string, service v1alpha1.Loa
 	}
 
 	if service.Namespace != "" {
-		log.FromContext(ctx).Warnf("namespace %q is ignored in cross-provider context", service.Namespace)
+		log.Ctx(ctx).Warn().Msgf("namespace %q is ignored in cross-provider context", service.Namespace)
 	}
 
 	return provider.Normalize(name) + providerNamespaceSeparator + pName
 }
 
-func namespaceOrFallback(lb v1alpha1.LoadBalancerSpec, fallback string) string {
+func namespaceOrFallback(lb traefikv1alpha1.LoadBalancerSpec, fallback string) string {
 	if lb.Namespace != "" {
 		return lb.Namespace
 	}
 	return fallback
 }
 
-func getTLSHTTP(ctx context.Context, ingressRoute *v1alpha1.IngressRoute, k8sClient Client, tlsConfigs map[string]*tls.CertAndStores) error {
+// getTLSHTTP mutates tlsConfigs.
+func getTLSHTTP(ctx context.Context, ingressRoute *traefikv1alpha1.IngressRoute, k8sClient Client, tlsConfigs map[string]*tls.CertAndStores) error {
 	if ingressRoute.Spec.TLS == nil {
 		return nil
 	}
 	if ingressRoute.Spec.TLS.SecretName == "" {
-		log.FromContext(ctx).Debugf("No secret name provided")
+		log.Ctx(ctx).Debug().Msg("No secret name provided")
 		return nil
 	}
 

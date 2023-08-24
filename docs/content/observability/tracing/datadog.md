@@ -1,3 +1,8 @@
+---
+title: "Traefik Datadog Tracing Documentation"
+description: "Traefik Proxy supports Datadog for tracing. Read the technical documentation to enable Datadog for observability."
+---
+
 # Datadog
 
 To enable the Datadog tracer:
@@ -18,24 +23,46 @@ tracing:
 
 #### `localAgentHostPort`
 
-_Required, Default="127.0.0.1:8126"_
+_Optional, Default="localhost:8126"_
 
 Local Agent Host Port instructs the reporter to send spans to the Datadog Agent at this address (host:port).
 
 ```yaml tab="File (YAML)"
 tracing:
   datadog:
-    localAgentHostPort: 127.0.0.1:8126
+    localAgentHostPort: localhost:8126
 ```
 
 ```toml tab="File (TOML)"
 [tracing]
   [tracing.datadog]
-    localAgentHostPort = "127.0.0.1:8126"
+    localAgentHostPort = "localhost:8126"
 ```
 
 ```bash tab="CLI"
---tracing.datadog.localAgentHostPort=127.0.0.1:8126
+--tracing.datadog.localAgentHostPort=localhost:8126
+```
+
+#### `localAgentSocket`
+
+_Optional, Default=""_
+
+Local Agent Socket instructs the reporter to send spans to the Datadog Agent at this UNIX socket.
+
+```yaml tab="File (YAML)"
+tracing:
+  datadog:
+    localAgentSocket: /var/run/datadog/apm.socket
+```
+
+```toml tab="File (TOML)"
+[tracing]
+  [tracing.datadog]
+    localAgentSocket = "/var/run/datadog/apm.socket"
+```
+
+```bash tab="CLI"
+--tracing.datadog.localAgentSocket=/var/run/datadog/apm.socket
 ```
 
 #### `debug`
@@ -60,26 +87,31 @@ tracing:
 --tracing.datadog.debug=true
 ```
 
-#### `globalTag`
+#### `globalTags`
 
 _Optional, Default=empty_
 
-Applies a shared key:value tag on all spans.
+Applies a list of shared key:value tags on all spans.
 
 ```yaml tab="File (YAML)"
 tracing:
   datadog:
-    globalTag: sample
+    globalTags:
+      tag1: foo
+      tag2: bar
 ```
 
 ```toml tab="File (TOML)"
 [tracing]
   [tracing.datadog]
-    globalTag = "sample"
+    [tracing.datadog.globalTags]
+      tag1 = "foo"
+      tag2 = "bar"
 ```
 
 ```bash tab="CLI"
---tracing.datadog.globalTag=sample
+--tracing.datadog.globalTags.tag1=foo
+--tracing.datadog.globalTags.tag2=bar
 ```
 
 #### `prioritySampling`

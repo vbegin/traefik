@@ -13,9 +13,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/config/runtime"
-	"github.com/traefik/traefik/v2/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/config/runtime"
+	"github.com/traefik/traefik/v3/pkg/config/static"
 )
 
 func Bool(v bool) *bool { return &v }
@@ -203,6 +203,84 @@ func TestHandler_HTTP(t *testing.T) {
 			},
 		},
 		{
+			desc: "routers filtered by service",
+			path: "/api/http/routers?serviceName=fii-service@myprovider",
+			conf: runtime.Configuration{
+				Routers: map[string]*runtime.RouterInfo{
+					"test@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "fii-service@myprovider",
+							Rule:        "Host(`fii.bar.other`)",
+							Middlewares: []string{"addPrefixTest", "auth"},
+						},
+						Status: runtime.StatusEnabled,
+					},
+					"foo@otherprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "fii-service",
+							Rule:        "Host(`fii.foo.other`)",
+						},
+						Status: runtime.StatusEnabled,
+					},
+					"bar@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "foo-service@myprovider",
+							Rule:        "Host(`foo.bar`)",
+							Middlewares: []string{"auth", "addPrefixTest@anotherprovider"},
+						},
+						Status: runtime.StatusDisabled,
+					},
+				},
+			},
+			expected: expected{
+				statusCode: http.StatusOK,
+				nextPage:   "1",
+				jsonFile:   "testdata/routers-filtered-serviceName.json",
+			},
+		},
+		{
+			desc: "routers filtered by middleware",
+			path: "/api/http/routers?middlewareName=auth",
+			conf: runtime.Configuration{
+				Routers: map[string]*runtime.RouterInfo{
+					"test@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "fii-service@myprovider",
+							Rule:        "Host(`fii.bar.other`)",
+							Middlewares: []string{"addPrefixTest", "auth"},
+						},
+						Status: runtime.StatusEnabled,
+					},
+					"foo@otherprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "fii-service",
+							Rule:        "Host(`fii.foo.other`)",
+						},
+						Status: runtime.StatusEnabled,
+					},
+					"bar@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "foo-service@myprovider",
+							Rule:        "Host(`foo.bar`)",
+							Middlewares: []string{"auth", "addPrefixTest@anotherprovider"},
+						},
+						Status: runtime.StatusDisabled,
+					},
+				},
+			},
+			expected: expected{
+				statusCode: http.StatusOK,
+				nextPage:   "1",
+				jsonFile:   "testdata/routers-filtered-middlewareName.json",
+			},
+		},
+		{
 			desc: "one router by id",
 			path: "/api/http/routers/bar@myprovider",
 			conf: runtime.Configuration{
@@ -221,6 +299,52 @@ func TestHandler_HTTP(t *testing.T) {
 			expected: expected{
 				statusCode: http.StatusOK,
 				jsonFile:   "testdata/router-bar.json",
+			},
+		},
+		{
+			desc: "one router by id, implicitly using default TLS options",
+			path: "/api/http/routers/baz@myprovider",
+			conf: runtime.Configuration{
+				Routers: map[string]*runtime.RouterInfo{
+					"baz@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "foo-service@myprovider",
+							Rule:        "Host(`foo.baz`)",
+							Middlewares: []string{"auth", "addPrefixTest@anotherprovider"},
+							TLS:         &dynamic.RouterTLSConfig{},
+						},
+						Status: "enabled",
+					},
+				},
+			},
+			expected: expected{
+				statusCode: http.StatusOK,
+				jsonFile:   "testdata/router-baz-default-tls-options.json",
+			},
+		},
+		{
+			desc: "one router by id, using specific TLS options",
+			path: "/api/http/routers/baz@myprovider",
+			conf: runtime.Configuration{
+				Routers: map[string]*runtime.RouterInfo{
+					"baz@myprovider": {
+						Router: &dynamic.Router{
+							EntryPoints: []string{"web"},
+							Service:     "foo-service@myprovider",
+							Rule:        "Host(`foo.baz`)",
+							Middlewares: []string{"auth", "addPrefixTest@anotherprovider"},
+							TLS: &dynamic.RouterTLSConfig{
+								Options: "myTLS",
+							},
+						},
+						Status: "enabled",
+					},
+				},
+			},
+			expected: expected{
+				statusCode: http.StatusOK,
+				jsonFile:   "testdata/router-baz-custom-tls-options.json",
 			},
 		},
 		{
@@ -811,6 +935,7 @@ func TestHandler_HTTP(t *testing.T) {
 			// To lazily initialize the Statuses.
 			rtConf.PopulateUsedBy()
 			rtConf.GetRoutersByEntryPoints(context.Background(), []string{"web"}, false)
+			rtConf.GetRoutersByEntryPoints(context.Background(), []string{"web"}, true)
 
 			handler := New(static.Configuration{API: &static.API{}, Global: &static.Global{}}, rtConf)
 			server := httptest.NewServer(handler.createRouter())

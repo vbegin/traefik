@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-acme/lego/v4/challenge/tlsalpn01"
 	"github.com/stretchr/testify/assert"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/tls"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/tls"
 )
 
 func Test_mergeConfiguration(t *testing.T) {
@@ -182,13 +182,7 @@ func Test_mergeConfiguration_tlsOptions(t *testing.T) {
 			desc:  "Nil returns an empty configuration",
 			given: nil,
 			expected: map[string]tls.Options{
-				"default": {
-					ALPNProtocols: []string{
-						"h2",
-						"http/1.1",
-						"acme-tls/1",
-					},
-				},
+				"default": tls.DefaultTLSOptions,
 			},
 		},
 		{
@@ -205,13 +199,7 @@ func Test_mergeConfiguration_tlsOptions(t *testing.T) {
 				},
 			},
 			expected: map[string]tls.Options{
-				"default": {
-					ALPNProtocols: []string{
-						"h2",
-						"http/1.1",
-						"acme-tls/1",
-					},
-				},
+				"default": tls.DefaultTLSOptions,
 				"foo@provider-1": {
 					MinVersion: "VersionTLS12",
 				},
@@ -240,13 +228,7 @@ func Test_mergeConfiguration_tlsOptions(t *testing.T) {
 				},
 			},
 			expected: map[string]tls.Options{
-				"default": {
-					ALPNProtocols: []string{
-						"h2",
-						"http/1.1",
-						"acme-tls/1",
-					},
-				},
+				"default": tls.DefaultTLSOptions,
 				"foo@provider-1": {
 					MinVersion: "VersionTLS13",
 				},
@@ -352,13 +334,7 @@ func Test_mergeConfiguration_tlsOptions(t *testing.T) {
 				},
 			},
 			expected: map[string]tls.Options{
-				"default": {
-					ALPNProtocols: []string{
-						"h2",
-						"http/1.1",
-						"acme-tls/1",
-					},
-				},
+				"default": tls.DefaultTLSOptions,
 				"foo@provider-1": {
 					MinVersion: "VersionTLS12",
 				},
@@ -497,6 +473,7 @@ func Test_mergeConfiguration_defaultTCPEntryPoint(t *testing.T) {
 		Services: map[string]*dynamic.TCPService{
 			"service-1@provider-1": {},
 		},
+		ServersTransports: make(map[string]*dynamic.TCPServersTransport),
 	}
 
 	actual := mergeConfiguration(given, []string{"defaultEP"})

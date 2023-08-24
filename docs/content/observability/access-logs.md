@@ -1,3 +1,8 @@
+---
+title: "Traefik Access Logs Documentation"
+description: "Access logs are a key part of observability in Traefik Proxy. Read the technical documentation to learn their configurations, rotations, and time zones."
+---
+
 # Access Logs
 
 Who Calls Whom?
@@ -133,10 +138,9 @@ Each field can be set to:
 - `drop` to drop the value
 - `redact` to replace the value with "redacted"
 
-The `defaultMode` for `fields.headers` is `drop`.
+The `defaultMode` for `fields.names` is `keep`.
 
-  [accessLog.fields]
-    defaultMode = "keep"
+The `defaultMode` for `fields.headers` is `drop`.
 
 ```yaml tab="File (YAML)"
 # Limiting the Logs to Specific Fields
@@ -150,9 +154,9 @@ accessLog:
     headers:
       defaultMode: keep
       names:
-          User-Agent: redact
-          Authorization: drop
-          Content-Type: keep
+        User-Agent: redact
+        Authorization: drop
+        Content-Type: keep
 ```
 
 ```toml tab="File (TOML)"
@@ -161,6 +165,9 @@ accessLog:
   filePath = "/path/to/access.log"
   format = "json"
 
+  [accessLog.fields]
+    defaultMode = "keep"
+    
     [accessLog.fields.names]
       "ClientUsername" = "drop"
 
@@ -222,6 +229,7 @@ accessLog:
     | `RetryAttempts`         | The amount of attempts the request was retried.                                                                                                                     |
     | `TLSVersion`            | The TLS version used by the connection (e.g. `1.2`) (if connection is TLS).                                                                                         |
     | `TLSCipher`             | The TLS cipher used by the connection (e.g. `TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA`) (if connection is TLS)                                                           |
+    | `TLSClientSubject`      | The string representation of the TLS client certificate's Subject (e.g. `CN=username,O=organization`)                                                               |
 
 ## Log Rotation
 
@@ -247,7 +255,7 @@ version: "3.7"
 
 services:
   traefik:
-    image: traefik:v2.6
+    image: traefik:v3.0
     environment:
       - TZ=US/Alaska
     command:

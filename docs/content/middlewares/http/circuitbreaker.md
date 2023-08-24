@@ -1,3 +1,8 @@
+---
+title: "Traefik CircuitBreaker Documentation"
+description: "The HTTP circuit breaker in Traefik Proxy prevents stacking requests to unhealthy Services, resulting in cascading failures. Read the technical documentation."
+---
+
 # CircuitBreaker
 
 Don't Waste Time Calling Unhealthy Services
@@ -25,7 +30,7 @@ To assess if your system is healthy, the circuit breaker constantly monitors the
 
 ## Configuration Examples
 
-```yaml tab="Docker"
+```yaml tab="Docker & Swarm"
 # Latency Check
 labels:
   - "traefik.http.middlewares.latency-check.circuitbreaker.expression=LatencyAtQuantileMS(50.0) > 100"
@@ -33,7 +38,7 @@ labels:
 
 ```yaml tab="Kubernetes"
 # Latency Check
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: latency-check
@@ -45,18 +50,6 @@ spec:
 ```yaml tab="Consul Catalog"
 # Latency Check
 - "traefik.http.middlewares.latency-check.circuitbreaker.expression=LatencyAtQuantileMS(50.0) > 100"
-```
-
-```json tab="Marathon"
-"labels": {
-  "traefik.http.middlewares.latency-check.circuitbreaker.expression": "LatencyAtQuantileMS(50.0) > 100"
-}
-```
-
-```yaml tab="Rancher"
-# Latency Check
-labels:
-  - "traefik.http.middlewares.latency-check.circuitbreaker.expression=LatencyAtQuantileMS(50.0) > 100"
 ```
 
 ```yaml tab="File (YAML)"
@@ -171,15 +164,18 @@ This behavior cannot be configured.
 
 ### `CheckPeriod`
 
-The interval used to evaluate `expression` and decide if the state of the circuit breaker must change.
-By default, `CheckPeriod` is 100ms. This value cannot be configured.
+_Optional, Default="100ms"_
+
+The interval between successive checks of the circuit breaker condition (when in standby state).
 
 ### `FallbackDuration`
 
-By default, `FallbackDuration` is 10 seconds. This value cannot be configured.
+_Optional, Default="10s"_
 
-### `RecoveringDuration`
+The duration for which the circuit breaker will wait before trying to recover (from a tripped state).
 
-The duration of the recovering mode (recovering state).
+### `RecoveryDuration`
 
-By default, `RecoveringDuration` is 10 seconds. This value cannot be configured.
+_Optional, Default="10s"_
+
+The duration for which the circuit breaker will try to recover (as soon as it is in recovering state).

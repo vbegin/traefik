@@ -12,11 +12,11 @@ import (
 
 	"github.com/go-check/check"
 	"github.com/miekg/dns"
-	"github.com/traefik/traefik/v2/integration/try"
-	"github.com/traefik/traefik/v2/pkg/config/static"
-	"github.com/traefik/traefik/v2/pkg/provider/acme"
-	"github.com/traefik/traefik/v2/pkg/testhelpers"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/traefik/traefik/v3/integration/try"
+	"github.com/traefik/traefik/v3/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/provider/acme"
+	"github.com/traefik/traefik/v3/pkg/testhelpers"
+	"github.com/traefik/traefik/v3/pkg/types"
 	checker "github.com/vdemeester/shakers"
 )
 
@@ -40,6 +40,7 @@ type acmeTestCase struct {
 }
 
 type templateModel struct {
+	Domain    types.Domain
 	Domains   []types.Domain
 	PortHTTP  string
 	PortHTTPS string
@@ -138,6 +139,29 @@ func (s *AcmeSuite) TestHTTP01Domains(c *check.C) {
 			Domains: []types.Domain{{
 				Main: "traefik.acme.wtf",
 			}},
+			Acme: map[string]static.CertificateResolver{
+				"default": {ACME: &acme.Configuration{
+					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},
+				}},
+			},
+		},
+	}
+
+	s.retrieveAcmeCertificate(c, testCase)
+}
+
+func (s *AcmeSuite) TestHTTP01StoreDomains(c *check.C) {
+	testCase := acmeTestCase{
+		traefikConfFilePath: "fixtures/acme/acme_store_domains.toml",
+		subCases: []subCases{{
+			host:               acmeDomain,
+			expectedCommonName: acmeDomain,
+			expectedAlgorithm:  x509.RSA,
+		}},
+		template: templateModel{
+			Domain: types.Domain{
+				Main: "traefik.acme.wtf",
+			},
 			Acme: map[string]static.CertificateResolver{
 				"default": {ACME: &acme.Configuration{
 					HTTPChallenge: &acme.HTTPChallenge{EntryPoint: "web"},

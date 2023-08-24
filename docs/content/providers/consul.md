@@ -1,3 +1,8 @@
+---
+title: "Traefik Consul Documentation"
+description: "Use Consul as a provider for configuration discovery in Traefik Proxy. Automate and store your configurations with Consul. Read the technical documentation."
+---
+
 # Traefik & Consul
 
 A Story of KV store & Containers
@@ -15,7 +20,7 @@ See the dedicated section in [routing](../routing/providers/kv.md).
 
 _Required, Default="127.0.0.1:8500"_
 
-Defines how to access to Consul.
+Defines how to access Consul.
 
 ```yaml tab="File (YAML)"
 providers:
@@ -54,32 +59,44 @@ providers:
 --providers.consul.rootkey=traefik
 ```
 
-### `namespace`
+### `namespaces`
 
 _Optional, Default=""_
 
-The `namespace` option defines the namespace to query.
+The `namespaces` option defines the namespaces to query.
+When using the `namespaces` option, the discovered configuration object names will be suffixed as shown below:
+
+```text
+<resource-name>@consul-<namespace>
+```
 
 !!! warning
 
-    The namespace option only works with [Consul Enterprise](https://www.consul.io/docs/enterprise),
+    The namespaces option only works with [Consul Enterprise](https://www.consul.io/docs/enterprise),
     which provides the [Namespaces](https://www.consul.io/docs/enterprise/namespaces) feature.
+
+!!! warning
+
+    One should only define either the `namespaces` option or the `namespace` option.
 
 ```yaml tab="File (YAML)"
 providers:
   consul:
+    namespaces: 
+      - "ns1"
+      - "ns2"
     # ...
-    namespace: "production"
 ```
 
 ```toml tab="File (TOML)"
 [providers.consul]
+  namespaces = ["ns1", "ns2"]
   # ...
-  namespace = "production"
 ```
 
 ```bash tab="CLI"
---providers.consul.namespace=production
+--providers.consul.namespaces=ns1,ns2
+# ...
 ```
 
 ### `username`
@@ -178,36 +195,6 @@ providers:
 
 ```bash tab="CLI"
 --providers.consul.tls.ca=path/to/ca.crt
-```
-
-#### `caOptional`
-
-_Optional_
-
-The value of `caOptional` defines which policy should be used for the secure connection with TLS Client Authentication to Consul.
-
-!!! warning ""
-
-    If `ca` is undefined, this option will be ignored, and no client certificate will be requested during the handshake. Any provided certificate will thus never be verified.
-
-When this option is set to `true`, a client certificate is requested during the handshake but is not required. If a certificate is sent, it is required to be valid.
-
-When this option is set to `false`, a client certificate is requested during the handshake, and at least one valid certificate should be sent by the client.
-
-```yaml tab="File (YAML)"
-providers:
-  consul:
-    tls:
-      caOptional: true
-```
-
-```toml tab="File (TOML)"
-[providers.consul.tls]
-  caOptional = true
-```
-
-```bash tab="CLI"
---providers.consul.tls.caOptional=true
 ```
 
 #### `cert`

@@ -1,6 +1,10 @@
 
 <p align="center">
-<img src="docs/content/assets/img/traefik.logo.png" alt="Traefik" title="Traefik" />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/content/assets/img/traefik.logo-dark.png">
+      <source media="(prefers-color-scheme: light)" srcset="docs/content/assets/img/traefik.logo.png">
+      <img alt="Traefik" title="Traefik" src="docs/content/assets/img/traefik.logo.png">
+    </picture>
 </p>
 
 [![Build Status SemaphoreCI](https://semaphoreci.com/api/v1/containous/traefik/branches/master/shields_badge.svg)](https://semaphoreci.com/containous/traefik)
@@ -10,9 +14,8 @@
 [![Join the community support forum at https://community.traefik.io/](https://img.shields.io/badge/style-register-green.svg?style=social&label=Discourse)](https://community.traefik.io/)
 [![Twitter](https://img.shields.io/twitter/follow/traefik.svg?style=social)](https://twitter.com/intent/follow?screen_name=traefik)
 
-
 Traefik (pronounced _traffic_) is a modern HTTP reverse proxy and load balancer that makes deploying microservices easy.
-Traefik integrates with your existing infrastructure components ([Docker](https://www.docker.com/), [Swarm mode](https://docs.docker.com/engine/swarm/), [Kubernetes](https://kubernetes.io), [Marathon](https://mesosphere.github.io/marathon/), [Consul](https://www.consul.io/), [Etcd](https://coreos.com/etcd/), [Rancher](https://rancher.com), [Amazon ECS](https://aws.amazon.com/ecs), ...) and configures itself automatically and dynamically.
+Traefik integrates with your existing infrastructure components ([Docker](https://www.docker.com/), [Swarm mode](https://docs.docker.com/engine/swarm/), [Kubernetes](https://kubernetes.io), [Consul](https://www.consul.io/), [Etcd](https://coreos.com/etcd/), [Rancher v2](https://rancher.com), [Amazon ECS](https://aws.amazon.com/ecs), ...) and configures itself automatically and dynamically.
 Pointing Traefik at your orchestrator should be the _only_ configuration step you need.
 
 ---
@@ -58,20 +61,17 @@ _(But if you'd rather configure some of your routes manually, Traefik supports t
 - Provides HTTPS to your microservices by leveraging [Let's Encrypt](https://letsencrypt.org)  (wildcard certificates support)
 - Circuit breakers, retry
 - See the magic through its clean web UI
-- Websocket, HTTP/2, GRPC ready
-- Provides metrics (Rest, Prometheus, Datadog, Statsd, InfluxDB)
+- Websocket, HTTP/2, gRPC ready
+- Provides metrics (Rest, Prometheus, Datadog, Statsd, InfluxDB 2.X)
 - Keeps access logs (JSON, CLF)
 - Fast
 - Exposes a Rest API
 - Packaged as a single binary file (made with :heart: with go) and available as an [official](https://hub.docker.com/r/_/traefik/) docker image
 
-
 ## Supported Backends
 
 - [Docker](https://doc.traefik.io/traefik/providers/docker/) / [Swarm mode](https://doc.traefik.io/traefik/providers/docker/)
 - [Kubernetes](https://doc.traefik.io/traefik/providers/kubernetes-crd/)
-- [Marathon](https://doc.traefik.io/traefik/providers/marathon/)
-- [Rancher](https://doc.traefik.io/traefik/providers/rancher/) (Metadata)
 - [File](https://doc.traefik.io/traefik/providers/file/)
 
 ## Quickstart
@@ -88,13 +88,12 @@ You can access the simple HTML frontend of Traefik.
 
 You can find the complete documentation of Traefik v2 at [https://doc.traefik.io/traefik/](https://doc.traefik.io/traefik/).
 
-If you are using Traefik v1, you can find the complete documentation at [https://doc.traefik.io/traefik/v1.7/](https://doc.traefik.io/traefik/v1.7/).
-
 A collection of contributions around Traefik can be found at [https://awesome.traefik.io](https://awesome.traefik.io).
 
 ## Support
 
 To get community support, you can:
+
 - join the Traefik community forum: [![Join the chat at https://community.traefik.io/](https://img.shields.io/badge/style-register-green.svg?style=social&label=Discourse)](https://community.traefik.io/)
 
 If you need commercial support, please contact [Traefik.io](https://traefik.io) by mail: <mailto:support@traefik.io>.
@@ -128,7 +127,6 @@ You can find high level and deep dive videos on [videos.traefik.io](https://vide
 We are strongly promoting a philosophy of openness and sharing, and firmly standing against the elitist closed approach. Being part of the core team should be accessible to anyone who is motivated and want to be part of that journey!
 This [document](docs/content/contributing/maintainers-guidelines.md) describes how to be part of the core team as well as various responsibilities and guidelines for Traefik maintainers.
 You can also find more information on our process to review pull requests and manage issues [in this document](docs/content/contributing/maintainers.md).
-
 
 ## Contributing
 

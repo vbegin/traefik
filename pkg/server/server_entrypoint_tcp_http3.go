@@ -8,12 +8,11 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"time"
 
-	"github.com/lucas-clemente/quic-go/http3"
-	"github.com/traefik/traefik/v2/pkg/config/static"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/tcp"
+	"github.com/quic-go/quic-go/http3"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/config/static"
+	tcprouter "github.com/traefik/traefik/v3/pkg/server/router/tcp"
 )
 
 type http3server struct {
@@ -47,24 +46,17 @@ func newHTTP3Server(ctx context.Context, configuration *static.EntryPoint, https
 	}
 
 	h3.Server = &http3.Server{
-		Port: uint32(configuration.HTTP3.AdvertisedPort),
-		Server: &http.Server{
-			Addr:         configuration.GetAddress(),
-			Handler:      httpsServer.Server.(*http.Server).Handler,
-			ErrorLog:     httpServerLogger,
-			ReadTimeout:  time.Duration(configuration.Transport.RespondingTimeouts.ReadTimeout),
-			WriteTimeout: time.Duration(configuration.Transport.RespondingTimeouts.WriteTimeout),
-			IdleTimeout:  time.Duration(configuration.Transport.RespondingTimeouts.IdleTimeout),
-			TLSConfig:    &tls.Config{GetConfigForClient: h3.getGetConfigForClient},
-		},
+		Addr:      configuration.GetAddress(),
+		Port:      configuration.HTTP3.AdvertisedPort,
+		Handler:   httpsServer.Server.(*http.Server).Handler,
+		TLSConfig: &tls.Config{GetConfigForClient: h3.getGetConfigForClient},
 	}
 
 	previousHandler := httpsServer.Server.(*http.Server).Handler
 
 	httpsServer.Server.(*http.Server).Handler = http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		err := h3.Server.SetQuicHeaders(rw.Header())
-		if err != nil {
-			log.FromContext(ctx).Errorf("failed to set HTTP3 headers: %v", err)
+		if err := h3.Server.SetQuicHeaders(rw.Header()); err != nil {
+			log.Ctx(ctx).Error().Err(err).Msg("Failed to set HTTP3 headers")
 		}
 
 		previousHandler.ServeHTTP(rw, req)
@@ -77,7 +69,7 @@ func (e *http3server) Start() error {
 	return e.Serve(e.http3conn)
 }
 
-func (e *http3server) Switch(rt *tcp.Router) {
+func (e *http3server) Switch(rt *tcprouter.Router) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -89,4 +81,9 @@ func (e *http3server) getGetConfigForClient(info *tls.ClientHelloInfo) (*tls.Con
 	defer e.lock.RUnlock()
 
 	return e.getter(info)
+}
+
+func (e *http3server) Shutdown(_ context.Context) error {
+	// TODO: use e.Server.CloseGracefully() when available.
+	return e.Server.Close()
 }

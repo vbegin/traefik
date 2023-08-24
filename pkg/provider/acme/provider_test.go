@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/stretchr/testify/assert"
-	"github.com/traefik/traefik/v2/pkg/safe"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/traefik/traefik/v3/pkg/safe"
+	"github.com/traefik/traefik/v3/pkg/types"
 )
 
 func TestGetUncheckedCertificates(t *testing.T) {
@@ -26,7 +26,7 @@ func TestGetUncheckedCertificates(t *testing.T) {
 	domainSafe := &safe.Safe{}
 	domainSafe.Set(domainMap)
 
-	// FIXME Add a test for DefaultCertificate
+	// TODO Add a test for DefaultCertificate
 	testCases := []struct {
 		desc             string
 		dynamicCerts     *safe.Safe
@@ -188,7 +188,7 @@ func TestGetUncheckedCertificates(t *testing.T) {
 	}
 }
 
-func TestGetValidDomain(t *testing.T) {
+func TestProvider_sanitizeDomains(t *testing.T) {
 	testCases := []struct {
 		desc            string
 		domains         types.Domain
@@ -214,14 +214,7 @@ func TestGetValidDomain(t *testing.T) {
 			desc:            "no domain",
 			domains:         types.Domain{},
 			dnsChallenge:    nil,
-			expectedErr:     "unable to generate a certificate in ACME provider when no domain is given",
-			expectedDomains: nil,
-		},
-		{
-			desc:            "no DNSChallenge",
-			domains:         types.Domain{Main: "*.traefik.wtf", SANs: []string{"foo.traefik.wtf"}},
-			dnsChallenge:    nil,
-			expectedErr:     "unable to generate a wildcard certificate in ACME provider for domain \"*.traefik.wtf,foo.traefik.wtf\" : ACME needs a DNSChallenge",
+			expectedErr:     "no domain was given",
 			expectedDomains: nil,
 		},
 		{
@@ -254,7 +247,7 @@ func TestGetValidDomain(t *testing.T) {
 
 			acmeProvider := Provider{Configuration: &Configuration{DNSChallenge: test.dnsChallenge}}
 
-			domains, err := acmeProvider.getValidDomains(context.Background(), test.domains)
+			domains, err := acmeProvider.sanitizeDomains(context.Background(), test.domains)
 
 			if len(test.expectedErr) > 0 {
 				assert.EqualError(t, err, test.expectedErr, "Unexpected error.")
@@ -608,10 +601,16 @@ func Test_getCertificateRenewDurations(t *testing.T) {
 			expectRenewInterval:   time.Minute,
 		},
 		{
-			desc:                  "1 Year certificates: 2 months renew period, 1 week renew interval",
+			desc:                  "1 Year certificates: 4 months renew period, 1 week renew interval",
 			certificatesDurations: 24 * 365,
 			expectRenewPeriod:     time.Hour * 24 * 30 * 4,
 			expectRenewInterval:   time.Hour * 24 * 7,
+		},
+		{
+			desc:                  "265 Days certificates: 30 days renew period, 1 day renew interval",
+			certificatesDurations: 24 * 265,
+			expectRenewPeriod:     time.Hour * 24 * 30,
+			expectRenewInterval:   time.Hour * 24,
 		},
 		{
 			desc:                  "90 Days certificates: 30 days renew period, 1 day renew interval",

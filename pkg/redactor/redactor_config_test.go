@@ -10,35 +10,33 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ptypes "github.com/traefik/paerser/types"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/config/static"
-	"github.com/traefik/traefik/v2/pkg/ping"
-	"github.com/traefik/traefik/v2/pkg/plugins"
-	"github.com/traefik/traefik/v2/pkg/provider/acme"
-	"github.com/traefik/traefik/v2/pkg/provider/consulcatalog"
-	"github.com/traefik/traefik/v2/pkg/provider/docker"
-	"github.com/traefik/traefik/v2/pkg/provider/ecs"
-	"github.com/traefik/traefik/v2/pkg/provider/file"
-	"github.com/traefik/traefik/v2/pkg/provider/http"
-	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd"
-	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/gateway"
-	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/ingress"
-	"github.com/traefik/traefik/v2/pkg/provider/kv"
-	"github.com/traefik/traefik/v2/pkg/provider/kv/consul"
-	"github.com/traefik/traefik/v2/pkg/provider/kv/etcd"
-	"github.com/traefik/traefik/v2/pkg/provider/kv/redis"
-	"github.com/traefik/traefik/v2/pkg/provider/kv/zk"
-	"github.com/traefik/traefik/v2/pkg/provider/marathon"
-	"github.com/traefik/traefik/v2/pkg/provider/rancher"
-	"github.com/traefik/traefik/v2/pkg/provider/rest"
-	traefiktls "github.com/traefik/traefik/v2/pkg/tls"
-	"github.com/traefik/traefik/v2/pkg/tracing/datadog"
-	"github.com/traefik/traefik/v2/pkg/tracing/elastic"
-	"github.com/traefik/traefik/v2/pkg/tracing/haystack"
-	"github.com/traefik/traefik/v2/pkg/tracing/instana"
-	"github.com/traefik/traefik/v2/pkg/tracing/jaeger"
-	"github.com/traefik/traefik/v2/pkg/tracing/zipkin"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/config/static"
+	"github.com/traefik/traefik/v3/pkg/ping"
+	"github.com/traefik/traefik/v3/pkg/plugins"
+	"github.com/traefik/traefik/v3/pkg/provider/acme"
+	"github.com/traefik/traefik/v3/pkg/provider/consulcatalog"
+	"github.com/traefik/traefik/v3/pkg/provider/docker"
+	"github.com/traefik/traefik/v3/pkg/provider/ecs"
+	"github.com/traefik/traefik/v3/pkg/provider/file"
+	"github.com/traefik/traefik/v3/pkg/provider/http"
+	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd"
+	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/gateway"
+	"github.com/traefik/traefik/v3/pkg/provider/kubernetes/ingress"
+	"github.com/traefik/traefik/v3/pkg/provider/kv"
+	"github.com/traefik/traefik/v3/pkg/provider/kv/consul"
+	"github.com/traefik/traefik/v3/pkg/provider/kv/etcd"
+	"github.com/traefik/traefik/v3/pkg/provider/kv/redis"
+	"github.com/traefik/traefik/v3/pkg/provider/kv/zk"
+	"github.com/traefik/traefik/v3/pkg/provider/rest"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
+	"github.com/traefik/traefik/v3/pkg/tracing/datadog"
+	"github.com/traefik/traefik/v3/pkg/tracing/elastic"
+	"github.com/traefik/traefik/v3/pkg/tracing/haystack"
+	"github.com/traefik/traefik/v3/pkg/tracing/instana"
+	"github.com/traefik/traefik/v3/pkg/tracing/jaeger"
+	"github.com/traefik/traefik/v3/pkg/tracing/zipkin"
+	"github.com/traefik/traefik/v3/pkg/types"
 )
 
 var updateExpected = flag.Bool("update_expected", false, "Update expected files in fixtures")
@@ -82,8 +80,8 @@ func init() {
 						Scheme:          "foo",
 						Path:            "foo",
 						Port:            42,
-						Interval:        "foo",
-						Timeout:         "foo",
+						Interval:        ptypes.Duration(111 * time.Second),
+						Timeout:         ptypes.Duration(111 * time.Second),
 						Hostname:        "foo",
 						FollowRedirects: boolPtr(true),
 						Headers: map[string]string{
@@ -92,7 +90,7 @@ func init() {
 					},
 					PassHostHeader: boolPtr(true),
 					ResponseForwarding: &dynamic.ResponseForwarding{
-						FlushInterval: "foo",
+						FlushInterval: ptypes.Duration(111 * time.Second),
 					},
 					ServersTransport: "foo",
 					Servers: []dynamic.Server{
@@ -175,8 +173,7 @@ func init() {
 					Prefix: "foo",
 				},
 				StripPrefix: &dynamic.StripPrefix{
-					Prefixes:   []string{"foo"},
-					ForceSlash: true,
+					Prefixes: []string{"foo"},
 				},
 				StripPrefixRegex: &dynamic.StripPrefixRegex{
 					Regex: []string{"foo"},
@@ -191,7 +188,7 @@ func init() {
 				Chain: &dynamic.Chain{
 					Middlewares: []string{"foo"},
 				},
-				IPWhiteList: &dynamic.IPWhiteList{
+				IPAllowList: &dynamic.IPAllowList{
 					SourceRange: []string{"foo"},
 					IPStrategy: &dynamic.IPStrategy{
 						Depth:       42,
@@ -211,11 +208,7 @@ func init() {
 					AddVaryHeader:                     true,
 					AllowedHosts:                      []string{"foo"},
 					HostsProxyHeaders:                 []string{"foo"},
-					SSLRedirect:                       true,
-					SSLTemporaryRedirect:              true,
-					SSLHost:                           "foo",
 					SSLProxyHeaders:                   map[string]string{"foo": "bar"},
-					SSLForceHost:                      true,
 					STSSeconds:                        42,
 					STSIncludeSubdomains:              true,
 					STSPreload:                        true,
@@ -228,7 +221,6 @@ func init() {
 					ContentSecurityPolicy:             "foo",
 					PublicKey:                         "foo",
 					ReferrerPolicy:                    "foo",
-					FeaturePolicy:                     "foo",
 					PermissionsPolicy:                 "foo",
 					IsDevelopment:                     true,
 				},
@@ -278,7 +270,6 @@ func init() {
 					Address: "127.0.0.1",
 					TLS: &types.ClientTLS{
 						CA:                 "ca.pem",
-						CAOptional:         true,
 						Cert:               "cert.pem",
 						Key:                "cert.pem",
 						InsecureSkipVerify: true,
@@ -344,9 +335,7 @@ func init() {
 					Attempts:        42,
 					InitialInterval: 42,
 				},
-				ContentType: &dynamic.ContentType{
-					AutoDetect: true,
-				},
+				ContentType: &dynamic.ContentType{},
 				Plugin: map[string]dynamic.PluginConf{
 					"foo": {
 						"answer": struct{ Answer int }{
@@ -379,7 +368,6 @@ func init() {
 		Services: map[string]*dynamic.TCPService{
 			"foo": {
 				LoadBalancer: &dynamic.TCPServersLoadBalancer{
-					TerminationDelay: intPtr(42),
 					ProxyProtocol: &dynamic.ProxyProtocol{
 						Version: 42,
 					},
@@ -388,6 +376,7 @@ func init() {
 							Address: "127.0.0.1:8080",
 						},
 					},
+					ServersTransport: "foo",
 				},
 			},
 			"bar": {
@@ -399,6 +388,24 @@ func init() {
 						},
 					},
 				},
+			},
+		},
+		ServersTransports: map[string]*dynamic.TCPServersTransport{
+			"foo": {
+				TLS: &dynamic.TLSClientConfig{
+					ServerName:         "foo",
+					InsecureSkipVerify: true,
+					RootCAs:            []traefiktls.FileOrContent{"rootca.pem"},
+					Certificates: []traefiktls.Certificate{
+						{
+							CertFile: "cert.pem",
+							KeyFile:  "key.pem",
+						},
+					},
+				},
+				DialTimeout:      42,
+				DialKeepAlive:    42,
+				TerminationDelay: 42,
 			},
 		},
 	}
@@ -442,8 +449,7 @@ func init() {
 					CAFiles:        []traefiktls.FileOrContent{"ca.pem"},
 					ClientAuthType: "RequireAndVerifyClientCert",
 				},
-				SniStrict:                true,
-				PreferServerCipherSuites: true,
+				SniStrict: true,
 			},
 		},
 		Certificates: []*traefiktls.CertAndStores{
@@ -510,17 +516,6 @@ func TestDo_staticConfiguration(t *testing.T) {
 		SendAnonymousUsage: true,
 	}
 
-	config.ServersTransport = &static.ServersTransport{
-		InsecureSkipVerify:  true,
-		RootCAs:             []traefiktls.FileOrContent{"root.ca"},
-		MaxIdleConnsPerHost: 42,
-		ForwardingTimeouts: &static.ForwardingTimeouts{
-			DialTimeout:           42,
-			ResponseHeaderTimeout: 42,
-			IdleConnTimeout:       42,
-		},
-	}
-
 	config.EntryPoints = static.EntryPoints{
 		"foobar": {
 			Address: "foo Address",
@@ -579,6 +574,15 @@ func TestDo_staticConfiguration(t *testing.T) {
 		},
 	}
 
+	config.TCPServersTransport = &static.TCPServersTransport{
+		DialTimeout:   ptypes.Duration(111 * time.Second),
+		DialKeepAlive: ptypes.Duration(111 * time.Second),
+		TLS: &static.TLSClientConfig{
+			InsecureSkipVerify: true,
+			RootCAs:            []traefiktls.FileOrContent{"RootCAs 1", "RootCAs 2", "RootCAs 3"},
+		},
+	}
+
 	config.Providers.File = &file.Provider{
 		Directory:                 "file Directory",
 		Watch:                     true,
@@ -587,50 +591,46 @@ func TestDo_staticConfiguration(t *testing.T) {
 	}
 
 	config.Providers.Docker = &docker.Provider{
-		Constraints: `Label("foo", "bar")`,
-		Watch:       true,
-		Endpoint:    "MyEndPoint",
-		DefaultRule: "PathPrefix(`/`)",
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			CAOptional:         true,
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
+		Shared: docker.Shared{
+			ExposedByDefault:   true,
+			Constraints:        `Label("foo", "bar")`,
+			AllowEmptyServices: true,
+			Network:            "MyNetwork",
+			UseBindPortIP:      true,
+			Watch:              true,
+			DefaultRule:        "PathPrefix(`/`)",
 		},
-		ExposedByDefault:        true,
-		UseBindPortIP:           true,
-		SwarmMode:               true,
-		Network:                 "MyNetwork",
-		SwarmModeRefreshSeconds: 42,
-		HTTPClientTimeout:       42,
+		ClientConfig: docker.ClientConfig{
+			Endpoint: "MyEndPoint", TLS: &types.ClientTLS{
+				CA:                 "myCa",
+				Cert:               "mycert.pem",
+				Key:                "mycert.key",
+				InsecureSkipVerify: true,
+			},
+			HTTPClientTimeout: 42,
+		},
 	}
 
-	config.Providers.Marathon = &marathon.Provider{
-		Constraints:      `Label("foo", "bar")`,
-		Trace:            true,
-		Watch:            true,
-		Endpoint:         "foobar",
-		DefaultRule:      "PathPrefix(`/`)",
-		ExposedByDefault: true,
-		DCOSToken:        "foobar",
-		TLS: &types.ClientTLS{
-			CA:                 "myCa",
-			CAOptional:         true,
-			Cert:               "mycert.pem",
-			Key:                "mycert.key",
-			InsecureSkipVerify: true,
+	config.Providers.Swarm = &docker.SwarmProvider{
+		Shared: docker.Shared{
+			ExposedByDefault:   true,
+			Constraints:        `Label("foo", "bar")`,
+			AllowEmptyServices: true,
+			Network:            "MyNetwork",
+			UseBindPortIP:      true,
+			Watch:              true,
+			DefaultRule:        "PathPrefix(`/`)",
 		},
-		DialerTimeout:         42,
-		ResponseHeaderTimeout: 42,
-		TLSHandshakeTimeout:   42,
-		KeepAlive:             42,
-		ForceTaskHostname:     true,
-		Basic: &marathon.Basic{
-			HTTPBasicAuthUser: "user",
-			HTTPBasicPassword: "password",
+		ClientConfig: docker.ClientConfig{
+			Endpoint: "MyEndPoint", TLS: &types.ClientTLS{
+				CA:                 "myCa",
+				Cert:               "mycert.pem",
+				Key:                "mycert.key",
+				InsecureSkipVerify: true,
+			},
+			HTTPClientTimeout: 42,
 		},
-		RespectReadinessChecks: true,
+		RefreshSeconds: 42,
 	}
 
 	config.Providers.KubernetesIngress = &ingress.Provider{
@@ -671,44 +671,35 @@ func TestDo_staticConfiguration(t *testing.T) {
 		Insecure: true,
 	}
 
-	config.Providers.Rancher = &rancher.Provider{
-		Constraints:               `Label("foo", "bar")`,
-		Watch:                     true,
-		DefaultRule:               "PathPrefix(`/`)",
-		ExposedByDefault:          true,
-		EnableServiceHealthFilter: true,
-		RefreshSeconds:            42,
-		IntervalPoll:              true,
-		Prefix:                    "MyPrefix",
-	}
-
-	config.Providers.ConsulCatalog = &consulcatalog.Provider{
-		Constraints: `Label("foo", "bar")`,
-		Endpoint: &consulcatalog.EndpointConfig{
-			Address:    "MyAddress",
-			Scheme:     "MyScheme",
-			DataCenter: "MyDatacenter",
-			Token:      "MyToken",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				CAOptional:         true,
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
+	config.Providers.ConsulCatalog = &consulcatalog.ProviderBuilder{
+		Configuration: consulcatalog.Configuration{
+			Constraints: `Label("foo", "bar")`,
+			Endpoint: &consulcatalog.EndpointConfig{
+				Address:    "MyAddress",
+				Scheme:     "MyScheme",
+				DataCenter: "MyDatacenter",
+				Token:      "MyToken",
+				TLS: &types.ClientTLS{
+					CA:                 "myCa",
+					Cert:               "mycert.pem",
+					Key:                "mycert.key",
+					InsecureSkipVerify: true,
+				},
+				HTTPAuth: &consulcatalog.EndpointHTTPAuthConfig{
+					Username: "MyUsername",
+					Password: "MyPassword",
+				},
+				EndpointWaitTime: 42,
 			},
-			HTTPAuth: &consulcatalog.EndpointHTTPAuthConfig{
-				Username: "MyUsername",
-				Password: "MyPassword",
-			},
-			EndpointWaitTime: 42,
+			Prefix:            "MyPrefix",
+			RefreshInterval:   42,
+			RequireConsistent: true,
+			Stale:             true,
+			Cache:             true,
+			ExposedByDefault:  true,
+			DefaultRule:       "PathPrefix(`/`)",
 		},
-		Prefix:            "MyPrefix",
-		RefreshInterval:   42,
-		RequireConsistent: true,
-		Stale:             true,
-		Cache:             true,
-		ExposedByDefault:  true,
-		DefaultRule:       "PathPrefix(`/`)",
+		Namespaces: []string{"ns1", "ns2"},
 	}
 
 	config.Providers.Ecs = &ecs.Provider{
@@ -718,40 +709,39 @@ func TestDo_staticConfiguration(t *testing.T) {
 		DefaultRule:          "PathPrefix(`/`)",
 		Clusters:             []string{"Cluster1", "Cluster2"},
 		AutoDiscoverClusters: true,
+		ECSAnywhere:          true,
 		Region:               "Awsregion",
 		AccessKeyID:          "AwsAccessKeyID",
 		SecretAccessKey:      "AwsSecretAccessKey",
 	}
 
-	config.Providers.Consul = &consul.Provider{
+	config.Providers.Consul = &consul.ProviderBuilder{
 		Provider: kv.Provider{
 			RootKey:   "RootKey",
 			Endpoints: nil,
-			Username:  "username",
-			Password:  "password",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				CAOptional:         true,
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
-			},
 		},
+		Token: "secret",
+		TLS: &types.ClientTLS{
+			CA:                 "myCa",
+			Cert:               "mycert.pem",
+			Key:                "mycert.key",
+			InsecureSkipVerify: true,
+		},
+		Namespaces: []string{"ns1", "ns2"},
 	}
 
 	config.Providers.Etcd = &etcd.Provider{
 		Provider: kv.Provider{
 			RootKey:   "RootKey",
 			Endpoints: nil,
-			Username:  "username",
-			Password:  "password",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				CAOptional:         true,
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
-			},
+		},
+		Username: "username",
+		Password: "password",
+		TLS: &types.ClientTLS{
+			CA:                 "myCa",
+			Cert:               "mycert.pem",
+			Key:                "mycert.key",
+			InsecureSkipVerify: true,
 		},
 	}
 
@@ -759,31 +749,23 @@ func TestDo_staticConfiguration(t *testing.T) {
 		Provider: kv.Provider{
 			RootKey:   "RootKey",
 			Endpoints: nil,
-			Username:  "username",
-			Password:  "password",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				CAOptional:         true,
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
-			},
 		},
+		Username: "username",
+		Password: "password",
 	}
 
 	config.Providers.Redis = &redis.Provider{
 		Provider: kv.Provider{
 			RootKey:   "RootKey",
 			Endpoints: nil,
-			Username:  "username",
-			Password:  "password",
-			TLS: &types.ClientTLS{
-				CA:                 "myCa",
-				CAOptional:         true,
-				Cert:               "mycert.pem",
-				Key:                "mycert.key",
-				InsecureSkipVerify: true,
-			},
+		},
+		Username: "username",
+		Password: "password",
+		TLS: &types.ClientTLS{
+			CA:                 "myCa",
+			Cert:               "mycert.pem",
+			Key:                "mycert.key",
+			InsecureSkipVerify: true,
 		},
 	}
 
@@ -793,7 +775,6 @@ func TestDo_staticConfiguration(t *testing.T) {
 		PollTimeout:  42,
 		TLS: &types.ClientTLS{
 			CA:                 "myCa",
-			CAOptional:         true,
 			Cert:               "mycert.pem",
 			Key:                "mycert.key",
 			InsecureSkipVerify: true,
@@ -827,17 +808,6 @@ func TestDo_staticConfiguration(t *testing.T) {
 			AddServicesLabels:    true,
 			Prefix:               "MyPrefix",
 		},
-		InfluxDB: &types.InfluxDB{
-			Address:              "localhost:8183",
-			Protocol:             "http",
-			PushInterval:         42,
-			Database:             "myDB",
-			RetentionPolicy:      "12",
-			Username:             "a",
-			Password:             "aaaa",
-			AddEntryPointsLabels: true,
-			AddServicesLabels:    true,
-		},
 	}
 
 	config.Ping = &ping.Handler{
@@ -847,9 +817,13 @@ func TestDo_staticConfiguration(t *testing.T) {
 	}
 
 	config.Log = &types.TraefikLog{
-		Level:    "Level",
-		FilePath: "/foo/path",
-		Format:   "json",
+		Level:      "Level",
+		Format:     "json",
+		FilePath:   "/foo/path",
+		MaxSize:    5,
+		MaxAge:     3,
+		MaxBackups: 4,
+		Compress:   true,
 	}
 
 	config.AccessLog = &types.AccessLog{
@@ -901,7 +875,8 @@ func TestDo_staticConfiguration(t *testing.T) {
 		},
 		Datadog: &datadog.Config{
 			LocalAgentHostPort:         "foobar",
-			GlobalTag:                  "foobar",
+			LocalAgentSocket:           "foobar",
+			GlobalTags:                 map[string]string{"foobar": "foobar"},
 			Debug:                      true,
 			PrioritySampling:           true,
 			TraceIDHeaderName:          "foobar",
@@ -957,10 +932,6 @@ func TestDo_staticConfiguration(t *testing.T) {
 				TLSChallenge: &acme.TLSChallenge{},
 			},
 		},
-	}
-
-	config.Pilot = &static.Pilot{
-		Token: "token",
 	}
 
 	config.Experimental = &static.Experimental{

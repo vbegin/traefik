@@ -1,3 +1,8 @@
+---
+title: "Traefik Tracing Overview"
+description: "The Traefik Proxy tracing system allows developers to visualize call flows in their infrastructure. Read the full documentation."
+---
+
 # Tracing
 
 Visualize the Requests Flow
@@ -7,7 +12,7 @@ The tracing system allows developers to visualize call flows in their infrastruc
 
 Traefik uses OpenTracing, an open standard designed for distributed tracing.
 
-Traefik supports six tracing backends:
+Traefik supports seven tracing backends:
 
 - [Jaeger](./jaeger.md)
 - [Zipkin](./zipkin.md)
@@ -15,6 +20,7 @@ Traefik supports six tracing backends:
 - [Instana](./instana.md)
 - [Haystack](./haystack.md)
 - [Elastic](./elastic.md)
+- [OpenTelemetry](./opentelemetry.md)
 
 ## Configuration
 

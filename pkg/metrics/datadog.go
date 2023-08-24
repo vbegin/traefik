@@ -4,116 +4,120 @@ import (
 	"context"
 	"time"
 
-	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/metrics/dogstatsd"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/safe"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/logs"
+	"github.com/traefik/traefik/v3/pkg/safe"
+	"github.com/traefik/traefik/v3/pkg/types"
 )
 
 var (
-	datadogClient *dogstatsd.Dogstatsd
-	datadogTicker *time.Ticker
+	datadogClient         *dogstatsd.Dogstatsd
+	datadogLoopCancelFunc context.CancelFunc
 )
 
 // Metric names consistent with https://github.com/DataDog/integrations-extras/pull/64
 const (
-	ddConfigReloadsName             = "config.reload.total"
-	ddConfigReloadsFailureTagName   = "failure"
-	ddLastConfigReloadSuccessName   = "config.reload.lastSuccessTimestamp"
-	ddLastConfigReloadFailureName   = "config.reload.lastFailureTimestamp"
+	ddConfigReloadsName           = "config.reload.total"
+	ddLastConfigReloadSuccessName = "config.reload.lastSuccessTimestamp"
+	ddOpenConnsName               = "open.connections"
+
 	ddTLSCertsNotAfterTimestampName = "tls.certs.notAfterTimestamp"
 
 	ddEntryPointReqsName        = "entrypoint.request.total"
 	ddEntryPointReqsTLSName     = "entrypoint.request.tls.total"
 	ddEntryPointReqDurationName = "entrypoint.request.duration"
-	ddEntryPointOpenConnsName   = "entrypoint.connections.open"
+	ddEntryPointReqsBytesName   = "entrypoint.requests.bytes.total"
+	ddEntryPointRespsBytesName  = "entrypoint.responses.bytes.total"
 
-	ddMetricsRouterReqsName         = "router.request.total"
-	ddMetricsRouterReqsTLSName      = "router.request.tls.total"
-	ddMetricsRouterReqsDurationName = "router.request.duration"
-	ddRouterOpenConnsName           = "router.connections.open"
+	ddRouterReqsName         = "router.request.total"
+	ddRouterReqsTLSName      = "router.request.tls.total"
+	ddRouterReqsDurationName = "router.request.duration"
+	ddRouterReqsBytesName    = "router.requests.bytes.total"
+	ddRouterRespsBytesName   = "router.responses.bytes.total"
 
-	ddMetricsServiceReqsName         = "service.request.total"
-	ddMetricsServiceReqsTLSName      = "service.request.tls.total"
-	ddMetricsServiceReqsDurationName = "service.request.duration"
-	ddRetriesTotalName               = "service.retries.total"
-	ddOpenConnsName                  = "service.connections.open"
-	ddServerUpName                   = "service.server.up"
+	ddServiceReqsName         = "service.request.total"
+	ddServiceReqsTLSName      = "service.request.tls.total"
+	ddServiceReqsDurationName = "service.request.duration"
+	ddServiceRetriesName      = "service.retries.total"
+	ddServiceServerUpName     = "service.server.up"
+	ddServiceReqsBytesName    = "service.requests.bytes.total"
+	ddServiceRespsBytesName   = "service.responses.bytes.total"
 )
 
 // RegisterDatadog registers the metrics pusher if this didn't happen yet and creates a datadog Registry instance.
 func RegisterDatadog(ctx context.Context, config *types.Datadog) Registry {
+	// Ensures there is only one DataDog client sending metrics at any given time.
+	StopDatadog()
+
 	// just to be sure there is a prefix defined
 	if config.Prefix == "" {
 		config.Prefix = defaultMetricsPrefix
 	}
 
-	datadogClient = dogstatsd.New(config.Prefix+".", kitlog.LoggerFunc(func(keyvals ...interface{}) error {
-		log.WithoutContext().WithField(log.MetricsProviderName, "datadog").Info(keyvals)
-		return nil
-	}))
+	datadogClient = dogstatsd.New(config.Prefix+".", logs.NewGoKitWrapper(log.Logger.With().Str(logs.MetricsProviderName, "datadog").Logger()))
 
-	if datadogTicker == nil {
-		datadogTicker = initDatadogClient(ctx, config)
-	}
+	initDatadogClient(ctx, config)
 
 	registry := &standardRegistry{
 		configReloadsCounter:           datadogClient.NewCounter(ddConfigReloadsName, 1.0),
-		configReloadsFailureCounter:    datadogClient.NewCounter(ddConfigReloadsName, 1.0).With(ddConfigReloadsFailureTagName, "true"),
 		lastConfigReloadSuccessGauge:   datadogClient.NewGauge(ddLastConfigReloadSuccessName),
-		lastConfigReloadFailureGauge:   datadogClient.NewGauge(ddLastConfigReloadFailureName),
+		openConnectionsGauge:           datadogClient.NewGauge(ddOpenConnsName),
 		tlsCertsNotAfterTimestampGauge: datadogClient.NewGauge(ddTLSCertsNotAfterTimestampName),
 	}
 
 	if config.AddEntryPointsLabels {
 		registry.epEnabled = config.AddEntryPointsLabels
-		registry.entryPointReqsCounter = datadogClient.NewCounter(ddEntryPointReqsName, 1.0)
+		registry.entryPointReqsCounter = NewCounterWithNoopHeaders(datadogClient.NewCounter(ddEntryPointReqsName, 1.0))
 		registry.entryPointReqsTLSCounter = datadogClient.NewCounter(ddEntryPointReqsTLSName, 1.0)
 		registry.entryPointReqDurationHistogram, _ = NewHistogramWithScale(datadogClient.NewHistogram(ddEntryPointReqDurationName, 1.0), time.Second)
-		registry.entryPointOpenConnsGauge = datadogClient.NewGauge(ddEntryPointOpenConnsName)
+		registry.entryPointReqsBytesCounter = datadogClient.NewCounter(ddEntryPointReqsBytesName, 1.0)
+		registry.entryPointRespsBytesCounter = datadogClient.NewCounter(ddEntryPointRespsBytesName, 1.0)
 	}
 
 	if config.AddRoutersLabels {
 		registry.routerEnabled = config.AddRoutersLabels
-		registry.routerReqsCounter = datadogClient.NewCounter(ddMetricsRouterReqsName, 1.0)
-		registry.routerReqsTLSCounter = datadogClient.NewCounter(ddMetricsRouterReqsTLSName, 1.0)
-		registry.routerReqDurationHistogram, _ = NewHistogramWithScale(datadogClient.NewHistogram(ddMetricsRouterReqsDurationName, 1.0), time.Second)
-		registry.routerOpenConnsGauge = datadogClient.NewGauge(ddRouterOpenConnsName)
+		registry.routerReqsCounter = NewCounterWithNoopHeaders(datadogClient.NewCounter(ddRouterReqsName, 1.0))
+		registry.routerReqsTLSCounter = datadogClient.NewCounter(ddRouterReqsTLSName, 1.0)
+		registry.routerReqDurationHistogram, _ = NewHistogramWithScale(datadogClient.NewHistogram(ddRouterReqsDurationName, 1.0), time.Second)
+		registry.routerReqsBytesCounter = datadogClient.NewCounter(ddRouterReqsBytesName, 1.0)
+		registry.routerRespsBytesCounter = datadogClient.NewCounter(ddRouterRespsBytesName, 1.0)
 	}
 
 	if config.AddServicesLabels {
 		registry.svcEnabled = config.AddServicesLabels
-		registry.serviceReqsCounter = datadogClient.NewCounter(ddMetricsServiceReqsName, 1.0)
-		registry.serviceReqsTLSCounter = datadogClient.NewCounter(ddMetricsServiceReqsTLSName, 1.0)
-		registry.serviceReqDurationHistogram, _ = NewHistogramWithScale(datadogClient.NewHistogram(ddMetricsServiceReqsDurationName, 1.0), time.Second)
-		registry.serviceRetriesCounter = datadogClient.NewCounter(ddRetriesTotalName, 1.0)
-		registry.serviceOpenConnsGauge = datadogClient.NewGauge(ddOpenConnsName)
-		registry.serviceServerUpGauge = datadogClient.NewGauge(ddServerUpName)
+		registry.serviceReqsCounter = NewCounterWithNoopHeaders(datadogClient.NewCounter(ddServiceReqsName, 1.0))
+		registry.serviceReqsTLSCounter = datadogClient.NewCounter(ddServiceReqsTLSName, 1.0)
+		registry.serviceReqDurationHistogram, _ = NewHistogramWithScale(datadogClient.NewHistogram(ddServiceReqsDurationName, 1.0), time.Second)
+		registry.serviceRetriesCounter = datadogClient.NewCounter(ddServiceRetriesName, 1.0)
+		registry.serviceServerUpGauge = datadogClient.NewGauge(ddServiceServerUpName)
+		registry.serviceReqsBytesCounter = datadogClient.NewCounter(ddServiceReqsBytesName, 1.0)
+		registry.serviceRespsBytesCounter = datadogClient.NewCounter(ddServiceRespsBytesName, 1.0)
 	}
 
 	return registry
 }
 
-func initDatadogClient(ctx context.Context, config *types.Datadog) *time.Ticker {
+func initDatadogClient(ctx context.Context, config *types.Datadog) {
 	address := config.Address
 	if len(address) == 0 {
 		address = "localhost:8125"
 	}
 
-	report := time.NewTicker(time.Duration(config.PushInterval))
+	ctx, datadogLoopCancelFunc = context.WithCancel(ctx)
 
 	safe.Go(func() {
-		datadogClient.SendLoop(ctx, report.C, "udp", address)
-	})
+		ticker := time.NewTicker(time.Duration(config.PushInterval))
+		defer ticker.Stop()
 
-	return report
+		datadogClient.SendLoop(ctx, ticker.C, "udp", address)
+	})
 }
 
-// StopDatadog stops internal datadogTicker which controls the pushing of metrics to DD Agent and resets it to `nil`.
+// StopDatadog stops the Datadog metrics pusher.
 func StopDatadog() {
-	if datadogTicker != nil {
-		datadogTicker.Stop()
+	if datadogLoopCancelFunc != nil {
+		datadogLoopCancelFunc()
+		datadogLoopCancelFunc = nil
 	}
-	datadogTicker = nil
 }

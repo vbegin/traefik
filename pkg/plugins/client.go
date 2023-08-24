@@ -16,6 +16,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/logs"
 	"golang.org/x/mod/module"
 	"golang.org/x/mod/zip"
 	"gopkg.in/yaml.v3"
@@ -29,34 +32,31 @@ const (
 	pluginManifest = ".traefik.yml"
 )
 
-const pilotURL = "https://plugin.pilot.traefik.io/public/"
+const pluginsURL = "https://plugins.traefik.io/public/"
 
 const (
-	hashHeader  = "X-Plugin-Hash"
-	tokenHeader = "X-Token"
+	hashHeader = "X-Plugin-Hash"
 )
 
-// ClientOptions the options of a Traefik Pilot client.
+// ClientOptions the options of a Traefik plugins client.
 type ClientOptions struct {
 	Output string
-	Token  string
 }
 
-// Client a Traefik Pilot client.
+// Client a Traefik plugins client.
 type Client struct {
 	HTTPClient *http.Client
 	baseURL    *url.URL
 
-	token     string
 	archives  string
 	stateFile string
 	goPath    string
 	sources   string
 }
 
-// NewClient creates a new Traefik Pilot client.
+// NewClient creates a new Traefik plugins client.
 func NewClient(opts ClientOptions) (*Client, error) {
-	baseURL, err := url.Parse(pilotURL)
+	baseURL, err := url.Parse(pluginsURL)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +78,13 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		return nil, fmt.Errorf("failed to create archives directory %s: %w", archivesPath, err)
 	}
 
+	client := retryablehttp.NewClient()
+	client.Logger = logs.NewRetryableHTTPLogger(log.Logger)
+	client.HTTPClient = &http.Client{Timeout: 10 * time.Second}
+	client.RetryMax = 3
+
 	return &Client{
-		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+		HTTPClient: client.StandardClient(),
 		baseURL:    baseURL,
 
 		archives:  archivesPath,
@@ -87,8 +92,6 @@ func NewClient(opts ClientOptions) (*Client, error) {
 
 		goPath:  goPath,
 		sources: filepath.Join(goPath, goPathSrc),
-
-		token: opts.Token,
 	}, nil
 }
 
@@ -153,10 +156,6 @@ func (c *Client) Download(ctx context.Context, pName, pVersion string) (string, 
 		req.Header.Set(hashHeader, hash)
 	}
 
-	if c.token != "" {
-		req.Header.Set(tokenHeader, c.token)
-	}
-
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to call service: %w", err)
@@ -164,7 +163,12 @@ func (c *Client) Download(ctx context.Context, pName, pVersion string) (string, 
 
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusNotModified:
+		// noop
+		return hash, nil
+
+	case http.StatusOK:
 		err = os.MkdirAll(filepath.Dir(filename), 0o755)
 		if err != nil {
 			return "", fmt.Errorf("failed to create directory: %w", err)
@@ -189,15 +193,11 @@ func (c *Client) Download(ctx context.Context, pName, pVersion string) (string, 
 		}
 
 		return hash, nil
-	}
 
-	if resp.StatusCode == http.StatusNotModified {
-		// noop
-		return hash, nil
+	default:
+		data, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("error: %d: %s", resp.StatusCode, string(data))
 	}
-
-	data, _ := io.ReadAll(resp.Body)
-	return "", fmt.Errorf("error: %d: %s", resp.StatusCode, string(data))
 }
 
 // Check checks the plugin archive integrity.
@@ -214,10 +214,6 @@ func (c *Client) Check(ctx context.Context, pName, pVersion, hash string) error 
 
 	if hash != "" {
 		req.Header.Set(hashHeader, hash)
-	}
-
-	if c.token != "" {
-		req.Header.Set(tokenHeader, c.token)
 	}
 
 	resp, err := c.HTTPClient.Do(req)
@@ -266,7 +262,7 @@ func (c *Client) unzipArchive(pName, pVersion string) error {
 	for _, f := range archive.File {
 		err = unzipFile(f, dest)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to unzip %s: %w", f.Name, err)
 		}
 	}
 
@@ -285,12 +281,17 @@ func unzipFile(f *zipa.File, dest string) error {
 	p := filepath.Join(dest, pathParts[1])
 
 	if f.FileInfo().IsDir() {
-		return os.MkdirAll(p, f.Mode())
+		err = os.MkdirAll(p, f.Mode())
+		if err != nil {
+			return fmt.Errorf("unable to create archive directory %s: %w", p, err)
+		}
+
+		return nil
 	}
 
 	err = os.MkdirAll(filepath.Dir(p), 0o750)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create archive directory %s for file %s: %w", filepath.Dir(p), p, err)
 	}
 
 	elt, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
@@ -349,7 +350,7 @@ func (c *Client) WriteState(plugins map[string]Descriptor) error {
 
 	mp, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to marshal plugin state: %w", err)
 	}
 
 	return os.WriteFile(c.stateFile, mp, 0o600)
@@ -363,10 +364,15 @@ func (c *Client) ResetAll() error {
 
 	err := resetDirectory(filepath.Join(c.goPath, ".."))
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to reset plugins GoPath directory %s: %w", c.goPath, err)
 	}
 
-	return resetDirectory(c.archives)
+	err = resetDirectory(c.archives)
+	if err != nil {
+		return fmt.Errorf("unable to reset plugins archives directory: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Client) buildArchivePath(pName, pVersion string) string {
@@ -376,12 +382,12 @@ func (c *Client) buildArchivePath(pName, pVersion string) string {
 func resetDirectory(dir string) error {
 	dirPath, err := filepath.Abs(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get absolute path of %s: %w", dir, err)
 	}
 
 	currentPath, err := os.Getwd()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to get the current directory: %w", err)
 	}
 
 	if strings.HasPrefix(currentPath, dirPath) {
@@ -390,10 +396,15 @@ func resetDirectory(dir string) error {
 
 	err = os.RemoveAll(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to remove directory %s: %w", dirPath, err)
 	}
 
-	return os.MkdirAll(dir, 0o755)
+	err = os.MkdirAll(dir, 0o755)
+	if err != nil {
+		return fmt.Errorf("unable to create directory %s: %w", dirPath, err)
+	}
+
+	return nil
 }
 
 func computeHash(filepath string) (string, error) {

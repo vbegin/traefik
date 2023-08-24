@@ -73,6 +73,18 @@
           </div>
         </div>
       </q-card-section>
+      <q-card-section v-if="data.priority">
+        <div class="row items-start no-wrap">
+          <div class="col">
+            <div class="text-subtitle2">PRIORITY</div>
+            <q-chip
+              dense
+              class="app-chip app-chip-entry-points">
+              {{ data.priority }}
+            </q-chip>
+          </div>
+        </div>
+      </q-card-section>
       <q-card-section v-if="data.error">
         <div class="row items-start no-wrap">
           <div class="col">
@@ -132,8 +144,17 @@ export default {
     getProviderLogoPath () {
       const name = this.data.provider.toLowerCase()
 
-      if (name.includes('plugin-')) {
+      if (name.startsWith('plugin-')) {
         return 'statics/providers/plugin.svg'
+      }
+      if (name.startsWith('consul-')) {
+        return `statics/providers/consul.svg`
+      }
+      if (name.startsWith('consulcatalog-')) {
+        return `statics/providers/consulcatalog.svg`
+      }
+      if (name.startsWith('nomad-')) {
+        return `statics/providers/nomad.svg`
       }
 
       return `statics/providers/${name}.svg`

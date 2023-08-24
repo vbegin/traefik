@@ -7,9 +7,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
+	"github.com/rs/zerolog/log"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	traefikv1alpha1 "github.com/traefik/traefik/v3/pkg/provider/kubernetes/crd/traefikio/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -20,7 +20,7 @@ func (p *Provider) loadIngressRouteUDPConfiguration(ctx context.Context, client 
 	}
 
 	for _, ingressRouteUDP := range client.GetIngressRouteUDPs() {
-		logger := log.FromContext(log.With(ctx, log.Str("ingress", ingressRouteUDP.Name), log.Str("namespace", ingressRouteUDP.Namespace)))
+		logger := log.Ctx(ctx).With().Str("ingress", ingressRouteUDP.Name).Str("namespace", ingressRouteUDP.Namespace).Logger()
 
 		if !shouldProcessIngress(p.IngressClass, ingressRouteUDP.Annotations[annotationKubernetesIngressClass]) {
 			continue
@@ -38,10 +38,11 @@ func (p *Provider) loadIngressRouteUDPConfiguration(ctx context.Context, client 
 			for _, service := range route.Services {
 				balancerServerUDP, err := p.createLoadBalancerServerUDP(client, ingressRouteUDP.Namespace, service)
 				if err != nil {
-					logger.
-						WithField("serviceName", service.Name).
-						WithField("servicePort", service.Port).
-						Errorf("Cannot create service: %v", err)
+					logger.Error().
+						Str("serviceName", service.Name).
+						Stringer("servicePort", &service.Port).
+						Err(err).
+						Msg("Cannot create service")
 					continue
 				}
 
@@ -77,7 +78,7 @@ func (p *Provider) loadIngressRouteUDPConfiguration(ctx context.Context, client 
 	return conf
 }
 
-func (p *Provider) createLoadBalancerServerUDP(client Client, parentNamespace string, service v1alpha1.ServiceUDP) (*dynamic.UDPService, error) {
+func (p *Provider) createLoadBalancerServerUDP(client Client, parentNamespace string, service traefikv1alpha1.ServiceUDP) (*dynamic.UDPService, error) {
 	ns := parentNamespace
 	if len(service.Namespace) > 0 {
 		if !isNamespaceAllowed(p.AllowCrossNamespace, parentNamespace, service.Namespace) {
@@ -101,7 +102,7 @@ func (p *Provider) createLoadBalancerServerUDP(client Client, parentNamespace st
 	return udpService, nil
 }
 
-func (p *Provider) loadUDPServers(client Client, namespace string, svc v1alpha1.ServiceUDP) ([]dynamic.UDPServer, error) {
+func (p *Provider) loadUDPServers(client Client, namespace string, svc traefikv1alpha1.ServiceUDP) ([]dynamic.UDPServer, error) {
 	service, exists, err := client.GetService(namespace, svc.Name)
 	if err != nil {
 		return nil, err
@@ -120,6 +121,15 @@ func (p *Provider) loadUDPServers(client Client, namespace string, svc v1alpha1.
 		return nil, err
 	}
 
+	if svc.NativeLB {
+		address, err := getNativeServiceAddress(*service, *svcPort)
+		if err != nil {
+			return nil, fmt.Errorf("getting native Kubernetes Service address: %w", err)
+		}
+
+		return []dynamic.UDPServer{{Address: address}}, nil
+	}
+
 	var servers []dynamic.UDPServer
 	if service.Spec.Type == corev1.ServiceTypeExternalName {
 		servers = append(servers, dynamic.UDPServer{
@@ -135,7 +145,7 @@ func (p *Provider) loadUDPServers(client Client, namespace string, svc v1alpha1.
 			return nil, errors.New("endpoints not found")
 		}
 
-		if len(endpoints.Subsets) == 0 {
+		if len(endpoints.Subsets) == 0 && !p.AllowEmptyServices {
 			return nil, errors.New("subset not found")
 		}
 

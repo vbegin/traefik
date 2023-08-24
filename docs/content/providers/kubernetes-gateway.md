@@ -1,3 +1,8 @@
+---
+title: "Traefik Kubernetes Gateway API Documentation"
+description: "Learn how to use the Kubernetes Gateway API as a provider for configuration discovery in Traefik Proxy. Read the technical documentation."
+---
+
 # Traefik & Kubernetes with Gateway API
 
 The Kubernetes Gateway API, The Experimental Way.
@@ -36,7 +41,9 @@ This provider is proposed as an experimental feature and partially supports the 
     --experimental.kubernetesgateway=true --providers.kubernetesgateway=true #...
     ```
 
-## Configuration Requirements
+## Requirements
+
+{!kubernetes-requirements.md!}
 
 !!! tip "All Steps for a Successful Deployment"
 
@@ -73,7 +80,7 @@ This provider is proposed as an experimental feature and partially supports the 
 
 The Kubernetes Gateway API project provides several guides on how to use the APIs.
 These guides can help you to go further than the example above.
-The [getting started guide](https://gateway-api.sigs.k8s.io/v1alpha2/guides/getting-started/) details how to install the CRDs from their repository.
+The [getting started guide](https://gateway-api.sigs.k8s.io/v1alpha2/guides/) details how to install the CRDs from their repository.
 
 !!! note ""
 
@@ -188,7 +195,7 @@ providers:
 _Optional, Default: []_
 
 Array of namespaces to watch.
-If left empty, watches all namespaces if the value of `namespaces`.
+If left empty, Traefik watches all namespaces.
 
 ```yaml tab="File (YAML)"
 providers:
@@ -263,3 +270,5 @@ providers:
 ```bash tab="CLI"
 --providers.kubernetesgateway.throttleDuration=10s
 ```
+
+{!traefik-api-management-kubernetes.md!}

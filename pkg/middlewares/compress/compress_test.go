@@ -1,17 +1,21 @@
 package compress
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httptrace"
+	"net/textproto"
 	"testing"
 
+	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/testhelpers"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/testhelpers"
 )
 
 const (
@@ -20,7 +24,80 @@ const (
 	contentTypeHeader     = "Content-Type"
 	varyHeader            = "Vary"
 	gzipValue             = "gzip"
+	brotliValue           = "br"
 )
+
+func TestNegotiation(t *testing.T) {
+	testCases := []struct {
+		desc            string
+		acceptEncHeader string
+		expEncoding     string
+	}{
+		{
+			desc:        "no accept header",
+			expEncoding: "br",
+		},
+		{
+			desc:            "unsupported accept header",
+			acceptEncHeader: "notreal",
+			expEncoding:     "",
+		},
+		{
+			desc:            "accept any header",
+			acceptEncHeader: "*",
+			expEncoding:     "br",
+		},
+		{
+			desc:            "gzip accept header",
+			acceptEncHeader: "gzip",
+			expEncoding:     "gzip",
+		},
+		{
+			desc:            "br accept header",
+			acceptEncHeader: "br",
+			expEncoding:     "br",
+		},
+		{
+			desc:            "multi accept header, prefer br",
+			acceptEncHeader: "br;q=0.8, gzip;q=0.6",
+			expEncoding:     "br",
+		},
+		{
+			desc:            "multi accept header, prefer br",
+			acceptEncHeader: "gzip;q=1.0, br;q=0.8",
+			expEncoding:     "br",
+		},
+		{
+			desc:            "multi accept header list, prefer br",
+			acceptEncHeader: "gzip, br",
+			expEncoding:     "br",
+		},
+	}
+
+	for _, test := range testCases {
+		test := test
+
+		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
+
+			req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
+			if test.acceptEncHeader != "" {
+				req.Header.Add(acceptEncodingHeader, test.acceptEncHeader)
+			}
+
+			next := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+				_, _ = rw.Write(generateBytes(10))
+			})
+			handler, err := New(context.Background(), next, dynamic.Compress{MinResponseBodyBytes: 1}, "testing")
+			require.NoError(t, err)
+
+			rw := httptest.NewRecorder()
+			handler.ServeHTTP(rw, req)
+
+			assert.Equal(t, test.expEncoding, rw.Header().Get(contentEncodingHeader))
+		})
+	}
+}
 
 func TestShouldCompressWhenNoContentEncodingHeader(t *testing.T) {
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
@@ -41,9 +118,12 @@ func TestShouldCompressWhenNoContentEncodingHeader(t *testing.T) {
 	assert.Equal(t, gzipValue, rw.Header().Get(contentEncodingHeader))
 	assert.Equal(t, acceptEncodingHeader, rw.Header().Get(varyHeader))
 
-	if assert.ObjectsAreEqualValues(rw.Body.Bytes(), baseBody) {
-		assert.Fail(t, "expected a compressed body", "got %v", rw.Body.Bytes())
-	}
+	gr, err := gzip.NewReader(rw.Body)
+	require.NoError(t, err)
+
+	got, err := io.ReadAll(gr)
+	require.NoError(t, err)
+	assert.Equal(t, got, baseBody)
 }
 
 func TestShouldNotCompressWhenContentEncodingHeader(t *testing.T) {
@@ -71,7 +151,7 @@ func TestShouldNotCompressWhenContentEncodingHeader(t *testing.T) {
 	assert.EqualValues(t, rw.Body.Bytes(), fakeCompressedBody)
 }
 
-func TestShouldNotCompressWhenNoAcceptEncodingHeader(t *testing.T) {
+func TestShouldCompressWhenNoAcceptEncodingHeader(t *testing.T) {
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
 
 	fakeBody := generateBytes(gzhttp.DefaultMinSize)
@@ -87,7 +167,87 @@ func TestShouldNotCompressWhenNoAcceptEncodingHeader(t *testing.T) {
 	rw := httptest.NewRecorder()
 	handler.ServeHTTP(rw, req)
 
+	assert.Equal(t, brotliValue, rw.Header().Get(contentEncodingHeader))
+	assert.Equal(t, acceptEncodingHeader, rw.Header().Get(varyHeader))
+
+	got, err := io.ReadAll(brotli.NewReader(rw.Body))
+	require.NoError(t, err)
+	assert.Equal(t, got, fakeBody)
+}
+
+func TestShouldNotCompressWhenIdentityAcceptEncodingHeader(t *testing.T) {
+	req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
+	req.Header.Set(acceptEncodingHeader, "identity")
+
+	fakeBody := generateBytes(gzhttp.DefaultMinSize)
+	next := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(acceptEncodingHeader) != "identity" {
+			http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		_, err := rw.Write(fakeBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	handler, err := New(context.Background(), next, dynamic.Compress{}, "testing")
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, req)
+
 	assert.Empty(t, rw.Header().Get(contentEncodingHeader))
+	assert.Empty(t, rw.Header().Get(varyHeader))
+	assert.EqualValues(t, rw.Body.Bytes(), fakeBody)
+}
+
+func TestShouldNotCompressWhenEmptyAcceptEncodingHeader(t *testing.T) {
+	req := testhelpers.MustNewRequest(http.MethodGet, "http://localhost", nil)
+	req.Header.Set(acceptEncodingHeader, "")
+
+	fakeBody := generateBytes(gzhttp.DefaultMinSize)
+	next := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(acceptEncodingHeader) != "" {
+			http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		_, err := rw.Write(fakeBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	handler, err := New(context.Background(), next, dynamic.Compress{}, "testing")
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, req)
+
+	assert.Empty(t, rw.Header().Get(contentEncodingHeader))
+	assert.Empty(t, rw.Header().Get(varyHeader))
+	assert.EqualValues(t, rw.Body.Bytes(), fakeBody)
+}
+
+func TestShouldNotCompressHeadRequest(t *testing.T) {
+	req := testhelpers.MustNewRequest(http.MethodHead, "http://localhost", nil)
+	req.Header.Add(acceptEncodingHeader, gzipValue)
+
+	fakeBody := generateBytes(gzhttp.DefaultMinSize)
+	next := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		_, err := rw.Write(fakeBody)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+	})
+	handler, err := New(context.Background(), next, dynamic.Compress{}, "testing")
+	require.NoError(t, err)
+
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, req)
+
+	assert.Empty(t, rw.Header().Get(contentEncodingHeader))
+	assert.Empty(t, rw.Header().Get(varyHeader))
 	assert.EqualValues(t, rw.Body.Bytes(), fakeBody)
 }
 
@@ -356,6 +516,86 @@ func TestMinResponseBodyBytes(t *testing.T) {
 	}
 }
 
+// This test is an adapted version of net/http/httputil.Test1xxResponses test.
+func Test1xxResponses(t *testing.T) {
+	fakeBody := generateBytes(100000)
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Add("Link", "</style.css>; rel=preload; as=style")
+		h.Add("Link", "</script.js>; rel=preload; as=script")
+		w.WriteHeader(http.StatusEarlyHints)
+
+		h.Add("Link", "</foo.js>; rel=preload; as=script")
+		w.WriteHeader(http.StatusProcessing)
+
+		if _, err := w.Write(fakeBody); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	compress, err := New(context.Background(), next, dynamic.Compress{MinResponseBodyBytes: 1024}, "testing")
+	require.NoError(t, err)
+
+	server := httptest.NewServer(compress)
+	t.Cleanup(server.Close)
+	frontendClient := server.Client()
+
+	checkLinkHeaders := func(t *testing.T, expected, got []string) {
+		t.Helper()
+
+		if len(expected) != len(got) {
+			t.Errorf("Expected %d link headers; got %d", len(expected), len(got))
+		}
+
+		for i := range expected {
+			if i >= len(got) {
+				t.Errorf("Expected %q link header; got nothing", expected[i])
+
+				continue
+			}
+
+			if expected[i] != got[i] {
+				t.Errorf("Expected %q link header; got %q", expected[i], got[i])
+			}
+		}
+	}
+
+	var respCounter uint8
+	trace := &httptrace.ClientTrace{
+		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
+			switch code {
+			case http.StatusEarlyHints:
+				checkLinkHeaders(t, []string{"</style.css>; rel=preload; as=style", "</script.js>; rel=preload; as=script"}, header["Link"])
+			case http.StatusProcessing:
+				checkLinkHeaders(t, []string{"</style.css>; rel=preload; as=style", "</script.js>; rel=preload; as=script", "</foo.js>; rel=preload; as=script"}, header["Link"])
+			default:
+				t.Error("Unexpected 1xx response")
+			}
+
+			respCounter++
+
+			return nil
+		},
+	}
+	req, _ := http.NewRequestWithContext(httptrace.WithClientTrace(context.Background(), trace), http.MethodGet, server.URL, nil)
+	req.Header.Add(acceptEncodingHeader, gzipValue)
+
+	res, err := frontendClient.Do(req)
+	assert.Nil(t, err)
+
+	defer res.Body.Close()
+
+	if respCounter != 2 {
+		t.Errorf("Expected 2 1xx responses; got %d", respCounter)
+	}
+	checkLinkHeaders(t, []string{"</style.css>; rel=preload; as=style", "</script.js>; rel=preload; as=script", "</foo.js>; rel=preload; as=script"}, res.Header["Link"])
+
+	assert.Equal(t, gzipValue, res.Header.Get(contentEncodingHeader))
+	body, _ := io.ReadAll(res.Body)
+	assert.NotEqualValues(t, body, fakeBody)
+}
+
 func BenchmarkCompress(b *testing.B) {
 	testCases := []struct {
 		name     string
@@ -401,7 +641,7 @@ func BenchmarkCompress(b *testing.B) {
 			})
 			handler, _ := New(context.Background(), next, dynamic.Compress{}, "testing")
 
-			req, _ := http.NewRequest("GET", "/whatever", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/whatever", nil)
 			req.Header.Set("Accept-Encoding", "gzip")
 
 			b.ReportAllocs()

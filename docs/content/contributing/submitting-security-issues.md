@@ -1,3 +1,8 @@
+---
+title: "Traefik Security Documentation"
+description: "Security is a key part of Traefik Proxy. Read the technical documentation to learn about security advisories, CVE, and how to report a vulnerability."
+---
+
 # Security
 
 ## Security Advisories
@@ -7,7 +12,7 @@ You can subscribe sending a mail to security+subscribe@traefik.io or on [the onl
 
 ## CVE
 
-Reported vulnerabilities can be found on 
+Reported vulnerabilities can be found on
 [cve.mitre.org](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=traefik).
 
 ## Report a Vulnerability

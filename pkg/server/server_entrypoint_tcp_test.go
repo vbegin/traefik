@@ -14,13 +14,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ptypes "github.com/traefik/paerser/types"
-	"github.com/traefik/traefik/v2/pkg/config/static"
-	"github.com/traefik/traefik/v2/pkg/tcp"
+	"github.com/traefik/traefik/v3/pkg/config/static"
+	tcprouter "github.com/traefik/traefik/v3/pkg/server/router/tcp"
+	"github.com/traefik/traefik/v3/pkg/tcp"
 )
 
 func TestShutdownHijacked(t *testing.T) {
-	router := &tcp.Router{}
-	router.HTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router := &tcprouter.Router{}
+	router.SetHTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		conn, _, err := rw.(http.Hijacker).Hijack()
 		require.NoError(t, err)
 
@@ -33,8 +34,8 @@ func TestShutdownHijacked(t *testing.T) {
 }
 
 func TestShutdownHTTP(t *testing.T) {
-	router := &tcp.Router{}
-	router.HTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router := &tcprouter.Router{}
+	router.SetHTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 		time.Sleep(time.Second)
 	}))
@@ -43,26 +44,24 @@ func TestShutdownHTTP(t *testing.T) {
 }
 
 func TestShutdownTCP(t *testing.T) {
-	router := &tcp.Router{}
-	router.AddCatchAllNoTLS(tcp.HandlerFunc(func(conn tcp.WriteCloser) {
-		for {
-			_, err := http.ReadRequest(bufio.NewReader(conn))
+	router, err := tcprouter.NewRouter()
+	require.NoError(t, err)
 
-			if errors.Is(err, io.EOF) || (err != nil && errors.Is(err, net.ErrClosed)) {
-				return
-			}
-			require.NoError(t, err)
-
-			resp := http.Response{StatusCode: http.StatusOK}
-			err = resp.Write(conn)
-			require.NoError(t, err)
+	err = router.AddRoute("HostSNI(`*`)", 0, tcp.HandlerFunc(func(conn tcp.WriteCloser) {
+		_, err := http.ReadRequest(bufio.NewReader(conn))
+		if err != nil {
+			return
 		}
+
+		resp := http.Response{StatusCode: http.StatusOK}
+		_ = resp.Write(conn)
 	}))
+	require.NoError(t, err)
 
 	testShutdown(t, router)
 }
 
-func testShutdown(t *testing.T, router *tcp.Router) {
+func testShutdown(t *testing.T, router *tcprouter.Router) {
 	t.Helper()
 
 	epConfig := &static.EntryPointsTransport{}
@@ -79,11 +78,13 @@ func testShutdown(t *testing.T, router *tcp.Router) {
 		Address:          "127.0.0.1:0",
 		Transport:        epConfig,
 		ForwardedHeaders: &static.ForwardedHeaders{},
-	}, nil)
+		HTTP2:            &static.HTTP2Config{},
+	}, nil, nil)
 	require.NoError(t, err)
 
 	conn, err := startEntrypoint(entryPoint, router)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = conn.Close() })
 
 	epAddr := entryPoint.listener.Addr().String()
 
@@ -92,14 +93,14 @@ func testShutdown(t *testing.T, router *tcp.Router) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	// We need to do a write on the conn before the shutdown to make it "exist".
+	// We need to do a write on conn before the shutdown to make it "exist".
 	// Because the connection indeed exists as far as TCP is concerned,
 	// but since we only pass it along to the HTTP server after at least one byte is peeked,
 	// the HTTP server (and hence its shutdown) does not know about the connection until that first byte peeked.
 	err = request.Write(conn)
 	require.NoError(t, err)
 
-	reader := bufio.NewReader(conn)
+	reader := bufio.NewReaderSize(conn, 1)
 	// Wait for first byte in response.
 	_, err = reader.Peek(1)
 	require.NoError(t, err)
@@ -135,7 +136,7 @@ func testShutdown(t *testing.T, router *tcp.Router) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-func startEntrypoint(entryPoint *TCPEntryPoint, router *tcp.Router) (net.Conn, error) {
+func startEntrypoint(entryPoint *TCPEntryPoint, router *tcprouter.Router) (net.Conn, error) {
 	go entryPoint.Start(context.Background())
 
 	entryPoint.SwitchRouter(router)
@@ -162,11 +163,12 @@ func TestReadTimeoutWithoutFirstByte(t *testing.T) {
 		Address:          ":0",
 		Transport:        epConfig,
 		ForwardedHeaders: &static.ForwardedHeaders{},
-	}, nil)
+		HTTP2:            &static.HTTP2Config{},
+	}, nil, nil)
 	require.NoError(t, err)
 
-	router := &tcp.Router{}
-	router.HTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router := &tcprouter.Router{}
+	router.SetHTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	}))
 
@@ -198,11 +200,12 @@ func TestReadTimeoutWithFirstByte(t *testing.T) {
 		Address:          ":0",
 		Transport:        epConfig,
 		ForwardedHeaders: &static.ForwardedHeaders{},
-	}, nil)
+		HTTP2:            &static.HTTP2Config{},
+	}, nil, nil)
 	require.NoError(t, err)
 
-	router := &tcp.Router{}
-	router.HTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+	router := &tcprouter.Router{}
+	router.SetHTTPHandler(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	}))
 

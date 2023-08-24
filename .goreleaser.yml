@@ -11,8 +11,9 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/traefik/traefik/v2/pkg/version.Version={{.Version}} -X github.com/traefik/traefik/v2/pkg/version.Codename={{.Env.CODENAME}} -X github.com/traefik/traefik/v2/pkg/version.BuildDate={{.Date}}
-
+      - -s -w -X github.com/traefik/traefik/v3/pkg/version.Version={{.Version}} -X github.com/traefik/traefik/v3/pkg/version.Codename={{.Env.CODENAME}} -X github.com/traefik/traefik/v3/pkg/version.BuildDate={{.Date}}
+    flags:
+      - -trimpath
     goos:
       - linux
       - darwin
@@ -21,24 +22,28 @@ builds:
       - openbsd
     goarch:
       - amd64
-      - 386
+      - '386'
       - arm
       - arm64
       - ppc64le
       - s390x
+      - riscv64
     goarm:
-      - 7
-      - 6
-      - 5
+      - '7'
+      - '6'
     ignore:
       - goos: darwin
-        goarch: 386
+        goarch: '386'
       - goos: openbsd
         goarch: arm
       - goos: openbsd
         goarch: arm64
       - goos: freebsd
+        goarch: arm
+      - goos: freebsd
         goarch: arm64
+      - goos: windows
+        goarch: arm
 
 changelog:
   skip: true

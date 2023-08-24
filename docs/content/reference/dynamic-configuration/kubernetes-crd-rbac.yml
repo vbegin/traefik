@@ -26,12 +26,13 @@ rules:
       - watch
   - apiGroups:
       - extensions
+      - networking.k8s.io
     resources:
       - ingresses/status
     verbs:
       - update
   - apiGroups:
-      - traefik.containo.us
+      - traefik.io
     resources:
       - middlewares
       - middlewaretcps
@@ -42,6 +43,7 @@ rules:
       - tlsoptions
       - tlsstores
       - serverstransports
+      - serverstransporttcps
     verbs:
       - get
       - list

@@ -1,3 +1,8 @@
+---
+title: "Kubernetes IngressRoute & Traefik CRD"
+description: "The Traefik team developed a Custom Resource Definition (CRD) for an IngressRoute type, to provide a better way to configure access to a Kubernetes cluster."
+---
+
 # Traefik & Kubernetes
 
 The Kubernetes Ingress Controller, The Custom Resource Way.
@@ -9,7 +14,9 @@ However, as the community expressed the need to benefit from Traefik features wi
 the Traefik engineering team developed a [Custom Resource Definition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/)
 (CRD) for an IngressRoute type, defined below, in order to provide a better way to configure access to a Kubernetes cluster.
 
-## Configuration Requirements
+## Requirements
+
+{!kubernetes-requirements.md!}
 
 !!! tip "All Steps for a Successful Deployment"
 
@@ -20,21 +27,14 @@ the Traefik engineering team developed a [Custom Resource Definition](https://ku
         * Apply the needed kubernetesCRD provider [configuration](#provider-configuration)
     * Add all necessary Traefik custom [resources](../reference/dynamic-configuration/kubernetes-crd.md#resources)
 
-!!! warning "Deprecated apiextensions.k8s.io/v1beta1 CRD"
+!!! example "Installing Resource Definition and RBAC"
 
-    The `apiextensions.k8s.io/v1beta1` CustomResourceDefinition is deprecated in Kubernetes `v1.16+` and will be removed in `v1.22+`.
+    ```bash
+    # Install Traefik Resource Definitions:
+    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml
     
-    For Kubernetes `v1.16+`, please use the Traefik `apiextensions.k8s.io/v1` CRDs instead.
-
-??? example "Initializing Resource Definition and RBAC"
-
-    ```yaml tab="Traefik Resource Definition"
-    # All resources definition must be declared
-    --8<-- "content/reference/dynamic-configuration/kubernetes-crd-definition-v1.yml"
-    ```
-
-    ```yaml tab="RBAC for Traefik CRD"
-    --8<-- "content/reference/dynamic-configuration/kubernetes-crd-rbac.yml"
+    # Install RBAC for Traefik:
+    kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v3.0/docs/content/reference/dynamic-configuration/kubernetes-crd-rbac.yml
     ```
 
 ## Resource Configuration
@@ -156,7 +156,7 @@ providers:
 _Optional, Default: []_
 
 Array of namespaces to watch.
-If left empty, watches all namespaces if the value of `namespaces`.
+If left empty, Traefik watches all namespaces.
 
 ```yaml tab="File (YAML)"
 providers:
@@ -264,11 +264,38 @@ providers:
 --providers.kubernetescrd.throttleDuration=10s
 ```
 
+### `allowEmptyServices`
+
+_Optional, Default: false_
+
+If the parameter is set to `true`,
+it allows the creation of an empty [servers load balancer](../routing/services/index.md#servers-load-balancer) if the targeted Kubernetes service has no endpoints available.
+With IngressRoute resources,
+this results in `503` HTTP responses instead of `404` ones.
+
+```yaml tab="File (YAML)"
+providers:
+  kubernetesCRD:
+    allowEmptyServices: true
+    # ...
+```
+
+```toml tab="File (TOML)"
+[providers.kubernetesCRD]
+  allowEmptyServices = true
+  # ...
+```
+
+```bash tab="CLI"
+--providers.kubernetesCRD.allowEmptyServices=true
+```
+
 ### `allowCrossNamespace`
 
 _Optional, Default: false_
 
-If the parameter is set to `true`, IngressRoutes are  able to reference  resources in other namespaces than theirs.
+If the parameter is set to `true`,
+IngressRoute are able to reference resources in namespaces other than theirs.
 
 ```yaml tab="File (YAML)"
 providers:
@@ -313,3 +340,5 @@ providers:
 ## Full Example
 
 For additional information, refer to the [full example](../user-guides/crd-acme/index.md) with Let's Encrypt.
+
+{!traefik-api-management-kubernetes.md!}

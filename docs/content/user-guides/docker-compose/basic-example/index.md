@@ -1,7 +1,12 @@
-# Docker-compose basic example
+---
+title: "Traefik Docker Documentation"
+description: "This guide covers a Docker Compose file exposing a service using the Docker provider in Traefik Proxy. Read the technical documentation."
+---
 
-In this section we quickly go over a basic docker-compose file exposing a simple service using the docker provider.  
-This will also be used as a starting point for the other docker-compose guides.  
+# Docker Compose example
+
+In this section, we quickly go over a Docker Compose file exposing a service using the Docker provider.
+This will also be used as a starting point for the other Docker Compose guides.
 
 ## Setup
 
@@ -11,11 +16,40 @@ This will also be used as a starting point for the other docker-compose guides.
 --8<-- "content/user-guides/docker-compose/basic-example/docker-compose.yml"
 ```
 
+??? Networking
+
+    The Traefik container has to be attached to the same network as the containers to be exposed.
+    If no networks are specified in the Docker Compose file, Docker creates a default one that allows Traefik to reach the containers defined in the same file.
+    You can [customize the network](https://docs.docker.com/compose/networking/#specify-custom-networks "Link to docs about custom networks with Docker Compose") as described in the example below.
+    You can use a [pre-existing network](https://docs.docker.com/compose/networking/#use-a-pre-existing-network "Link to Docker Compose networking docs") too.
+
+    ```yaml
+    version: "3.3"
+
+    networks:
+      traefiknet: {}
+
+    services:
+
+      traefik:
+        image: "traefik:v3.0"
+        ...
+        networks:
+          - traefiknet
+
+      whoami:
+        image: "traefik/whoami"
+        ...
+        networks:
+          - traefiknet
+
+    ```
+
 - Replace `whoami.localhost` by your **own domain** within the `traefik.http.routers.whoami.rule` label of the `whoami` service.
 - Run `docker-compose up -d` within the folder where you created the previous file.
 - Wait a bit and visit `http://your_own_domain` to confirm everything went fine.
 	You should see the output of the whoami service. Something similar to:
-	
+
 	```text
 	Hostname: d7f919e54651
 	IP: 127.0.0.1
@@ -35,9 +69,9 @@ This will also be used as a starting point for the other docker-compose guides.
 
 ## Details
 
-- As an example we use [whoami](https://github.com/traefik/whoami) (a tiny Go server that prints os information and HTTP request to output) which was used to define our `simple-service` container.
+- As an example, we use [whoami](https://github.com/traefik/whoami "Link to the GitHub repo of whoami") (a tiny Go server that prints OS information and HTTP request to output) which was used to define our `simple-service` container.
 
-- We define an entry point, along with the exposure of the matching port within docker-compose, which basically allow us to "open and accept" HTTP traffic: 
+- We define an entry point, along with the exposure of the matching port within Docker Compose, which allow us to "open and accept" HTTP traffic:
 
 ```yaml
 command:
@@ -61,8 +95,8 @@ ports:
 
 !!! Note
 
-    If you are working on a remote server, you can use the following command to display configuration (require `curl` & `jq`): 
-     
+    If you are working on a remote server, you can use the following command to display configuration (require `curl` & `jq`):
+
     ```bash
     curl -s 127.0.0.1:8080/api/rawdata | jq .
     ```
@@ -72,7 +106,7 @@ ports:
 ```yaml
 traefik:
   command:
-    # Enabling docker provider
+    # Enabling Docker provider
     - "--providers.docker=true"
     # Do not expose containers unless explicitly told so
     - "--providers.docker.exposedbydefault=false"
@@ -88,3 +122,5 @@ whoami:
     # Allow request only from the predefined entry point named "web"
     - "traefik.http.routers.whoami.entrypoints=web"
 ```
+
+{!traefik-for-business-applications.md!}

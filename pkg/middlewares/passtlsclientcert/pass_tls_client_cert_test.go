@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/testhelpers"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/testhelpers"
 )
 
 const (
@@ -610,7 +610,7 @@ WqeUSNGYV//RunTeuRDAf5OxehERb1srzBXhRZ3cZdzXbgR/`,
 
 			content := sanitize(test.toSanitize)
 
-			expected := url.QueryEscape(strings.ReplaceAll(test.expected, "\n", ""))
+			expected := strings.ReplaceAll(test.expected, "\n", "")
 			assert.Equal(t, expected, content, "The sanitized certificates should be equal")
 		})
 	}

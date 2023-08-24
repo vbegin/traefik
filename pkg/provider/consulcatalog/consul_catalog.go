@@ -11,19 +11,23 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/go-hclog"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	ptypes "github.com/traefik/paerser/types"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
-	"github.com/traefik/traefik/v2/pkg/job"
-	"github.com/traefik/traefik/v2/pkg/log"
-	"github.com/traefik/traefik/v2/pkg/provider"
-	"github.com/traefik/traefik/v2/pkg/provider/constraints"
-	"github.com/traefik/traefik/v2/pkg/safe"
-	"github.com/traefik/traefik/v2/pkg/types"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/job"
+	"github.com/traefik/traefik/v3/pkg/logs"
+	"github.com/traefik/traefik/v3/pkg/provider"
+	"github.com/traefik/traefik/v3/pkg/provider/constraints"
+	"github.com/traefik/traefik/v3/pkg/safe"
+	"github.com/traefik/traefik/v3/pkg/types"
 )
 
-// DefaultTemplateRule The default template for the default rule.
-const DefaultTemplateRule = "Host(`{{ normalize .Name }}`)"
+// defaultTemplateRule is the default template for the default rule.
+const defaultTemplateRule = "Host(`{{ normalize .Name }}`)"
+
+// providerName is the Consul Catalog provider name.
+const providerName = "consulcatalog"
 
 var _ provider.Provider = (*Provider)(nil)
 
@@ -41,12 +45,40 @@ type itemData struct {
 	ExtraConf  configuration
 }
 
-// Provider holds configurations of the provider.
-type Provider struct {
+// ProviderBuilder is responsible for constructing namespaced instances of the Consul Catalog provider.
+type ProviderBuilder struct {
+	Configuration `yaml:",inline" export:"true"`
+
+	Namespaces []string `description:"Sets the namespaces used to discover services (Consul Enterprise only)." json:"namespaces,omitempty" toml:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+}
+
+// BuildProviders builds Consul Catalog provider instances for the given namespaces configuration.
+func (p *ProviderBuilder) BuildProviders() []*Provider {
+	if len(p.Namespaces) == 0 {
+		return []*Provider{{
+			Configuration: p.Configuration,
+			name:          providerName,
+		}}
+	}
+
+	var providers []*Provider
+	for _, namespace := range p.Namespaces {
+		providers = append(providers, &Provider{
+			Configuration: p.Configuration,
+			name:          providerName + "-" + namespace,
+			namespace:     namespace,
+		})
+	}
+
+	return providers
+}
+
+// Configuration represents the Consul Catalog provider configuration.
+type Configuration struct {
 	Constraints       string          `description:"Constraints is an expression that Traefik matches against the container's labels to determine whether to create any route for that container." json:"constraints,omitempty" toml:"constraints,omitempty" yaml:"constraints,omitempty" export:"true"`
 	Endpoint          *EndpointConfig `description:"Consul endpoint settings" json:"endpoint,omitempty" toml:"endpoint,omitempty" yaml:"endpoint,omitempty" export:"true"`
-	Prefix            string          `description:"Prefix for consul service tags. Default 'traefik'" json:"prefix,omitempty" toml:"prefix,omitempty" yaml:"prefix,omitempty" export:"true"`
-	RefreshInterval   ptypes.Duration `description:"Interval for check Consul API. Default 15s" json:"refreshInterval,omitempty" toml:"refreshInterval,omitempty" yaml:"refreshInterval,omitempty" export:"true"`
+	Prefix            string          `description:"Prefix for consul service tags." json:"prefix,omitempty" toml:"prefix,omitempty" yaml:"prefix,omitempty" export:"true"`
+	RefreshInterval   ptypes.Duration `description:"Interval for check Consul API." json:"refreshInterval,omitempty" toml:"refreshInterval,omitempty" yaml:"refreshInterval,omitempty" export:"true"`
 	RequireConsistent bool            `description:"Forces the read to be fully consistent." json:"requireConsistent,omitempty" toml:"requireConsistent,omitempty" yaml:"requireConsistent,omitempty" export:"true"`
 	Stale             bool            `description:"Use stale consistency for catalog reads." json:"stale,omitempty" toml:"stale,omitempty" yaml:"stale,omitempty" export:"true"`
 	Cache             bool            `description:"Use local agent caching for catalog reads." json:"cache,omitempty" toml:"cache,omitempty" yaml:"cache,omitempty" export:"true"`
@@ -55,9 +87,25 @@ type Provider struct {
 	ConnectAware      bool            `description:"Enable Consul Connect support." json:"connectAware,omitempty" toml:"connectAware,omitempty" yaml:"connectAware,omitempty" export:"true"`
 	ConnectByDefault  bool            `description:"Consider every service as Connect capable by default." json:"connectByDefault,omitempty" toml:"connectByDefault,omitempty" yaml:"connectByDefault,omitempty" export:"true"`
 	ServiceName       string          `description:"Name of the Traefik service in Consul Catalog (needs to be registered via the orchestrator or manually)." json:"serviceName,omitempty" toml:"serviceName,omitempty" yaml:"serviceName,omitempty" export:"true"`
-	Namespace         string          `description:"Sets the namespace used to discover services (Consul Enterprise only)." json:"namespace,omitempty" toml:"namespace,omitempty" yaml:"namespace,omitempty" export:"true"`
 	Watch             bool            `description:"Watch Consul API events." json:"watch,omitempty" toml:"watch,omitempty" yaml:"watch,omitempty" export:"true"`
+}
 
+// SetDefaults sets the default values.
+func (c *Configuration) SetDefaults() {
+	c.Endpoint = &EndpointConfig{}
+	c.RefreshInterval = ptypes.Duration(15 * time.Second)
+	c.Prefix = "traefik"
+	c.ExposedByDefault = true
+	c.DefaultRule = defaultTemplateRule
+	c.ServiceName = "traefik"
+}
+
+// Provider is the Consul Catalog provider implementation.
+type Provider struct {
+	Configuration
+
+	name              string
+	namespace         string
 	client            *api.Client
 	defaultRuleTpl    *template.Template
 	certChan          chan *connectCert
@@ -81,17 +129,6 @@ type EndpointHTTPAuthConfig struct {
 	Password string `description:"Basic Auth password" json:"password,omitempty" toml:"password,omitempty" yaml:"password,omitempty" loggable:"false"`
 }
 
-// SetDefaults sets the default values.
-func (p *Provider) SetDefaults() {
-	endpoint := &EndpointConfig{}
-	p.Endpoint = endpoint
-	p.RefreshInterval = ptypes.Duration(15 * time.Second)
-	p.Prefix = "traefik"
-	p.ExposedByDefault = true
-	p.DefaultRule = DefaultTemplateRule
-	p.ServiceName = "traefik"
-}
-
 // Init the provider.
 func (p *Provider) Init() error {
 	defaultRuleTpl, err := provider.MakeDefaultRuleTemplate(p.DefaultRule, nil)
@@ -103,20 +140,25 @@ func (p *Provider) Init() error {
 	p.certChan = make(chan *connectCert, 1)
 	p.watchServicesChan = make(chan struct{}, 1)
 
+	// In case they didn't initialize Provider with BuildProviders.
+	if p.name == "" {
+		p.name = providerName
+	}
+
 	return nil
 }
 
 // Provide allows the consul catalog provider to provide configurations to traefik using the given configuration channel.
 func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.Pool) error {
 	var err error
-	p.client, err = createClient(p.Namespace, p.Endpoint)
+	p.client, err = createClient(p.namespace, p.Endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to create consul client: %w", err)
 	}
 
 	pool.GoCtx(func(routineCtx context.Context) {
-		ctxLog := log.With(routineCtx, log.Str(log.ProviderName, "consulcatalog"))
-		logger := log.FromContext(ctxLog)
+		logger := log.Ctx(routineCtx).With().Str(logs.ProviderName, p.name).Logger()
+		ctxLog := logger.WithContext(routineCtx)
 
 		operation := func() error {
 			ctx, cancel := context.WithCancel(ctxLog)
@@ -143,7 +185,7 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 			// that gets resolved before the certificates are available
 			// will cause an error condition.
 			if p.ConnectAware && !certInfo.isReady() {
-				logger.Infof("Waiting for Connect certificate before building first configuration")
+				logger.Info().Msg("Waiting for Connect certificate before building first configuration")
 				select {
 				case <-ctx.Done():
 					return nil
@@ -191,12 +233,12 @@ func (p *Provider) Provide(configurationChan chan<- dynamic.Message, pool *safe.
 		}
 
 		notify := func(err error, time time.Duration) {
-			logger.Errorf("Provider connection error %+v, retrying in %s", err, time)
+			logger.Error().Err(err).Msgf("Provider error, retrying in %s", time)
 		}
 
 		err := backoff.RetryNotify(safe.OperationWithRecover(operation), backoff.WithContext(job.NewBackOff(backoff.NewExponentialBackOff()), ctxLog), notify)
 		if err != nil {
-			logger.Errorf("Cannot connect to consul catalog server %+v", err)
+			logger.Error().Err(err).Msg("Cannot retrieve data")
 		}
 	})
 
@@ -210,7 +252,7 @@ func (p *Provider) loadConfiguration(ctx context.Context, certInfo *connectCert,
 	}
 
 	configurationChan <- dynamic.Message{
-		ProviderName:  "consulcatalog",
+		ProviderName:  p.name,
 		Configuration: p.buildConfiguration(ctx, data, certInfo),
 	}
 
@@ -230,72 +272,72 @@ func (p *Provider) getConsulServicesData(ctx context.Context) ([]itemData, error
 
 	var data []itemData
 	for name, tags := range serviceNames {
-		logger := log.FromContext(log.With(ctx, log.Str("serviceName", name)))
+		logger := log.Ctx(ctx).With().Str("serviceName", name).Logger()
 
-		svcCfg, err := p.getConfiguration(tagsToNeutralLabels(tags, p.Prefix))
+		extraConf, err := p.getExtraConf(tagsToNeutralLabels(tags, p.Prefix))
 		if err != nil {
-			logger.Errorf("Skip service: %v", err)
+			logger.Error().Err(err).Msg("Skip service")
 			continue
 		}
 
-		if !svcCfg.Enable {
-			logger.Debug("Filtering disabled item")
+		if !extraConf.Enable {
+			logger.Debug().Msg("Filtering disabled item")
 			continue
 		}
 
 		matches, err := constraints.MatchTags(tags, p.Constraints)
 		if err != nil {
-			logger.Errorf("Error matching constraint expressions: %v", err)
+			logger.Error().Err(err).Msg("Error matching constraint expressions")
 			continue
 		}
 
 		if !matches {
-			logger.Debugf("Container pruned by constraint expressions: %q", p.Constraints)
+			logger.Debug().Msgf("Container pruned by constraint expressions: %q", p.Constraints)
 			continue
 		}
 
-		if !p.ConnectAware && svcCfg.ConsulCatalog.Connect {
-			logger.Debugf("Filtering out Connect aware item, Connect support is not enabled")
+		if !p.ConnectAware && extraConf.ConsulCatalog.Connect {
+			logger.Debug().Msg("Filtering out Connect aware item, Connect support is not enabled")
 			continue
 		}
 
-		consulServices, statuses, err := p.fetchService(ctx, name, svcCfg.ConsulCatalog.Connect)
+		consulServices, statuses, err := p.fetchService(ctx, name, extraConf.ConsulCatalog.Connect)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, consulService := range consulServices {
-			address := consulService.ServiceAddress
+			address := consulService.Service.Address
 			if address == "" {
-				address = consulService.Address
+				address = consulService.Node.Address
 			}
 
-			namespace := consulService.Namespace
+			namespace := consulService.Service.Namespace
 			if namespace == "" {
 				namespace = "default"
 			}
 
-			status, exists := statuses[consulService.ID+consulService.ServiceID]
+			status, exists := statuses[consulService.Node.ID+consulService.Service.ID]
 			if !exists {
 				status = api.HealthAny
 			}
 
 			item := itemData{
-				ID:         consulService.ServiceID,
-				Node:       consulService.Node,
-				Datacenter: consulService.Datacenter,
+				ID:         consulService.Service.ID,
+				Node:       consulService.Node.Node,
+				Datacenter: consulService.Node.Datacenter,
 				Namespace:  namespace,
 				Name:       name,
 				Address:    address,
-				Port:       strconv.Itoa(consulService.ServicePort),
-				Labels:     tagsToNeutralLabels(consulService.ServiceTags, p.Prefix),
-				Tags:       consulService.ServiceTags,
+				Port:       strconv.Itoa(consulService.Service.Port),
+				Labels:     tagsToNeutralLabels(consulService.Service.Tags, p.Prefix),
+				Tags:       consulService.Service.Tags,
 				Status:     status,
 			}
 
-			extraConf, err := p.getConfiguration(item.Labels)
+			extraConf, err := p.getExtraConf(item.Labels)
 			if err != nil {
-				log.FromContext(ctx).Errorf("Skip item %s: %v", item.Name, err)
+				log.Ctx(ctx).Error().Err(err).Msgf("Skip item %s", item.Name)
 				continue
 			}
 			item.ExtraConf = extraConf
@@ -307,7 +349,7 @@ func (p *Provider) getConsulServicesData(ctx context.Context) ([]itemData, error
 	return data, nil
 }
 
-func (p *Provider) fetchService(ctx context.Context, name string, connectEnabled bool) ([]*api.CatalogService, map[string]string, error) {
+func (p *Provider) fetchService(ctx context.Context, name string, connectEnabled bool) ([]*api.ServiceEntry, map[string]string, error) {
 	var tagFilter string
 	if !p.ExposedByDefault {
 		tagFilter = p.Prefix + ".enable=true"
@@ -316,19 +358,12 @@ func (p *Provider) fetchService(ctx context.Context, name string, connectEnabled
 	opts := &api.QueryOptions{AllowStale: p.Stale, RequireConsistent: p.RequireConsistent, UseCache: p.Cache}
 	opts = opts.WithContext(ctx)
 
-	catalogFunc := p.client.Catalog().Service
 	healthFunc := p.client.Health().Service
 	if connectEnabled {
-		catalogFunc = p.client.Catalog().Connect
 		healthFunc = p.client.Health().Connect
 	}
 
-	consulServices, _, err := catalogFunc(name, tagFilter, opts)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	healthServices, _, err := healthFunc(name, tagFilter, false, opts)
+	consulServices, _, err := healthFunc(name, tagFilter, false, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -336,7 +371,7 @@ func (p *Provider) fetchService(ctx context.Context, name string, connectEnabled
 	// Index status by service and node so it can be retrieved from a CatalogService even if the health and services
 	// are not in sync.
 	statuses := make(map[string]string)
-	for _, health := range healthServices {
+	for _, health := range consulServices {
 		if health.Service == nil || health.Node == nil {
 			continue
 		}
@@ -380,8 +415,9 @@ func (p *Provider) watchServices(ctx context.Context) error {
 
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:       "consulcatalog",
-		Level:      hclog.LevelFromString(logrus.GetLevel().String()),
+		Level:      hclog.LevelFromString(log.Logger.GetLevel().String()),
 		JSONFormat: true,
+		Output:     logs.NoLevel(log.Logger, zerolog.DebugLevel),
 	})
 
 	errChan := make(chan error, 2)
@@ -411,13 +447,13 @@ func (p *Provider) watchServices(ctx context.Context) error {
 func rootsWatchHandler(ctx context.Context, dest chan<- []string) func(watch.BlockingParamVal, interface{}) {
 	return func(_ watch.BlockingParamVal, raw interface{}) {
 		if raw == nil {
-			log.FromContext(ctx).Errorf("Root certificate watcher called with nil")
+			log.Ctx(ctx).Error().Msg("Root certificate watcher called with nil")
 			return
 		}
 
 		v, ok := raw.(*api.CARootList)
 		if !ok || v == nil {
-			log.FromContext(ctx).Errorf("Invalid result for root certificate watcher")
+			log.Ctx(ctx).Error().Msg("Invalid result for root certificate watcher")
 			return
 		}
 
@@ -441,13 +477,13 @@ type keyPair struct {
 func leafWatcherHandler(ctx context.Context, dest chan<- keyPair) func(watch.BlockingParamVal, interface{}) {
 	return func(_ watch.BlockingParamVal, raw interface{}) {
 		if raw == nil {
-			log.FromContext(ctx).Errorf("Leaf certificate watcher called with nil")
+			log.Ctx(ctx).Error().Msg("Leaf certificate watcher called with nil")
 			return
 		}
 
 		v, ok := raw.(*api.LeafCert)
 		if !ok || v == nil {
-			log.FromContext(ctx).Errorf("Invalid result for leaf certificate watcher")
+			log.Ctx(ctx).Error().Msg("Invalid result for leaf certificate watcher")
 			return
 		}
 
@@ -487,8 +523,9 @@ func (p *Provider) watchConnectTLS(ctx context.Context) error {
 
 	hclogger := hclog.New(&hclog.LoggerOptions{
 		Name:       "consulcatalog",
-		Level:      hclog.LevelFromString(logrus.GetLevel().String()),
+		Level:      hclog.LevelFromString(log.Logger.GetLevel().String()),
 		JSONFormat: true,
+		Output:     logs.NoLevel(log.Logger, zerolog.DebugLevel),
 	})
 
 	errChan := make(chan error, 2)
@@ -529,7 +566,7 @@ func (p *Provider) watchConnectTLS(ctx context.Context) error {
 			leaf: leafCerts,
 		}
 		if newCertInfo.isReady() && !newCertInfo.equals(certInfo) {
-			log.FromContext(ctx).Debugf("Updating connect certs for service %s", p.ServiceName)
+			log.Ctx(ctx).Debug().Msgf("Updating connect certs for service %s", p.ServiceName)
 
 			certInfo = newCertInfo
 

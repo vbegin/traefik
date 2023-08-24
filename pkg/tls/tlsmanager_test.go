@@ -119,8 +119,9 @@ func TestManager_Get(t *testing.T) {
 	}}
 
 	tlsConfigs := map[string]Options{
-		"foo": {MinVersion: "VersionTLS12"},
-		"bar": {MinVersion: "VersionTLS11"},
+		"foo":     {MinVersion: "VersionTLS12"},
+		"bar":     {MinVersion: "VersionTLS11"},
+		"invalid": {CurvePreferences: []string{"42"}},
 	}
 
 	testCases := []struct {
@@ -140,13 +141,18 @@ func TestManager_Get(t *testing.T) {
 			expectedMinVersion: uint16(tls.VersionTLS11),
 		},
 		{
-			desc:           "Get an tls config from an invalid name",
+			desc:           "Get a tls config from an invalid name",
 			tlsOptionsName: "unknown",
 			expectedError:  true,
 		},
 		{
-			desc:           "Get an tls config from unexisting 'default' name",
+			desc:           "Get a tls config from unexisting 'default' name",
 			tlsOptionsName: "default",
+			expectedError:  true,
+		},
+		{
+			desc:           "Get an invalid tls config",
+			tlsOptionsName: "invalid",
 			expectedError:  true,
 		},
 	}
@@ -161,11 +167,12 @@ func TestManager_Get(t *testing.T) {
 
 			config, err := tlsManager.Get("default", test.tlsOptionsName)
 			if test.expectedError {
-				assert.Error(t, err)
+				require.Nil(t, config)
+				require.Error(t, err)
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, config.MinVersion, test.expectedMinVersion)
 		})
 	}
@@ -316,4 +323,32 @@ func TestClientAuth(t *testing.T) {
 			assert.Equal(t, config.ClientAuth, test.expectedClientAuth)
 		})
 	}
+}
+
+func TestManager_Get_DefaultValues(t *testing.T) {
+	tlsManager := NewManager()
+
+	// Ensures we won't break things for Traefik users when updating Go
+	config, _ := tlsManager.Get("default", "default")
+	assert.Equal(t, config.MinVersion, uint16(tls.VersionTLS12))
+	assert.Equal(t, config.NextProtos, []string{"h2", "http/1.1", "acme-tls/1"})
+	assert.Equal(t, config.CipherSuites, []uint16{
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	})
 }

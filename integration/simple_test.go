@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/rand"
 	"encoding/json"
@@ -10,14 +11,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/go-check/check"
-	"github.com/traefik/traefik/v2/integration/try"
-	"github.com/traefik/traefik/v2/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/integration/try"
+	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	checker "github.com/vdemeester/shakers"
 )
 
@@ -32,7 +34,7 @@ func (s *SimpleSuite) TestInvalidConfigShouldFail(c *check.C) {
 	defer s.killCmd(cmd)
 
 	err = try.Do(500*time.Millisecond, func() error {
-		expected := "Near line 0 (last key parsed ''): bare keys cannot contain '{'"
+		expected := "expected '.' or '=', but got '{' instead"
 		actual := output.String()
 
 		if !strings.Contains(actual, expected) {
@@ -307,7 +309,7 @@ func (s *SimpleSuite) TestMetricsPrometheusDefaultEntryPoint(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer s.killCmd(cmd)
 
-	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix"))
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix(`/whoami`)"))
 	c.Assert(err, checker.IsNil)
 
 	err = try.GetRequest("http://127.0.0.1:8000/whoami", 1*time.Second, try.StatusCodeIs(http.StatusOK))
@@ -368,6 +370,84 @@ func (s *SimpleSuite) TestMetricsPrometheusTwoRoutersOneService(c *check.C) {
 	}
 }
 
+// TestMetricsWithBufferingMiddleware checks that the buffering middleware
+// (which introduces its own response writer in the chain), does not interfere with
+// the capture middleware on which the metrics mechanism relies.
+func (s *SimpleSuite) TestMetricsWithBufferingMiddleware(c *check.C) {
+	s.createComposeProject(c, "base")
+
+	s.composeUp(c)
+	defer s.composeDown(c)
+
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("MORE THAN TEN BYTES IN RESPONSE"))
+	}))
+
+	server.Start()
+	defer server.Close()
+
+	file := s.adaptFile(c, "fixtures/simple_metrics_with_buffer_middleware.toml", struct{ IP string }{IP: strings.TrimPrefix(server.URL, "http://")})
+	defer os.Remove(file)
+
+	cmd, output := s.traefikCmd(withConfigFile(file))
+	defer output(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix(`/without`)"))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8001/without", 1*time.Second, try.StatusCodeIs(http.StatusOK))
+	c.Assert(err, checker.IsNil)
+
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8002/with-req", strings.NewReader("MORE THAN TEN BYTES IN REQUEST"))
+	c.Assert(err, checker.IsNil)
+
+	// The request should fail because the body is too large.
+	err = try.Request(req, 1*time.Second, try.StatusCodeIs(http.StatusRequestEntityTooLarge))
+	c.Assert(err, checker.IsNil)
+
+	// The request should fail because the response exceeds the configured limit.
+	err = try.GetRequest("http://127.0.0.1:8003/with-resp", 1*time.Second, try.StatusCodeIs(http.StatusInternalServerError))
+	c.Assert(err, checker.IsNil)
+
+	request, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8080/metrics", nil)
+	c.Assert(err, checker.IsNil)
+
+	response, err := http.DefaultClient.Do(request)
+	c.Assert(err, checker.IsNil)
+	c.Assert(response.StatusCode, checker.Equals, http.StatusOK)
+
+	body, err := io.ReadAll(response.Body)
+	c.Assert(err, checker.IsNil)
+
+	// For allowed requests and responses, the entrypoint and service metrics have the same status code.
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_total{code=\"200\",entrypoint=\"webA\",method=\"GET\",protocol=\"http\"} 1")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_bytes_total{code=\"200\",entrypoint=\"webA\",method=\"GET\",protocol=\"http\"} 0")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_responses_bytes_total{code=\"200\",entrypoint=\"webA\",method=\"GET\",protocol=\"http\"} 31")
+
+	c.Assert(string(body), checker.Contains, "traefik_service_requests_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-without@file\"} 1")
+	c.Assert(string(body), checker.Contains, "traefik_service_requests_bytes_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-without@file\"} 0")
+	c.Assert(string(body), checker.Contains, "traefik_service_responses_bytes_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-without@file\"} 31")
+
+	// For forbidden requests, the entrypoints have metrics, the services don't.
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_total{code=\"413\",entrypoint=\"webB\",method=\"GET\",protocol=\"http\"} 1")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_bytes_total{code=\"413\",entrypoint=\"webB\",method=\"GET\",protocol=\"http\"} 0")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_responses_bytes_total{code=\"413\",entrypoint=\"webB\",method=\"GET\",protocol=\"http\"} 24")
+
+	// For disallowed responses, the entrypoint and service metrics don't have the same status code.
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_bytes_total{code=\"500\",entrypoint=\"webC\",method=\"GET\",protocol=\"http\"} 0")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_requests_total{code=\"500\",entrypoint=\"webC\",method=\"GET\",protocol=\"http\"} 1")
+	c.Assert(string(body), checker.Contains, "traefik_entrypoint_responses_bytes_total{code=\"500\",entrypoint=\"webC\",method=\"GET\",protocol=\"http\"} 21")
+
+	c.Assert(string(body), checker.Contains, "traefik_service_requests_bytes_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-resp@file\"} 0")
+	c.Assert(string(body), checker.Contains, "traefik_service_requests_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-resp@file\"} 1")
+	c.Assert(string(body), checker.Contains, "traefik_service_responses_bytes_total{code=\"200\",method=\"GET\",protocol=\"http\",service=\"service-resp@file\"} 31")
+}
+
 func (s *SimpleSuite) TestMultipleProviderSameBackendName(c *check.C) {
 	s.createComposeProject(c, "base")
 
@@ -396,13 +476,13 @@ func (s *SimpleSuite) TestMultipleProviderSameBackendName(c *check.C) {
 	c.Assert(err, checker.IsNil)
 }
 
-func (s *SimpleSuite) TestIPStrategyWhitelist(c *check.C) {
-	s.createComposeProject(c, "whitelist")
+func (s *SimpleSuite) TestIPStrategyAllowlist(c *check.C) {
+	s.createComposeProject(c, "allowlist")
 
 	s.composeUp(c)
 	defer s.composeDown(c)
 
-	cmd, output := s.traefikCmd(withConfigFile("fixtures/simple_whitelist.toml"))
+	cmd, output := s.traefikCmd(withConfigFile("fixtures/simple_allowlist.toml"))
 	defer output(c)
 
 	err := cmd.Start()
@@ -412,7 +492,7 @@ func (s *SimpleSuite) TestIPStrategyWhitelist(c *check.C) {
 	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 2*time.Second, try.BodyContains("override"))
 	c.Assert(err, checker.IsNil)
 
-	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 2*time.Second, try.BodyContains("override.remoteaddr.whitelist.docker.local"))
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 2*time.Second, try.BodyContains("override.remoteaddr.allowlist.docker.local"))
 	c.Assert(err, checker.IsNil)
 
 	testCases := []struct {
@@ -424,31 +504,31 @@ func (s *SimpleSuite) TestIPStrategyWhitelist(c *check.C) {
 		{
 			desc:               "override remote addr reject",
 			xForwardedFor:      "8.8.8.8,8.8.8.8",
-			host:               "override.remoteaddr.whitelist.docker.local",
+			host:               "override.remoteaddr.allowlist.docker.local",
 			expectedStatusCode: 403,
 		},
 		{
 			desc:               "override depth accept",
 			xForwardedFor:      "8.8.8.8,10.0.0.1,127.0.0.1",
-			host:               "override.depth.whitelist.docker.local",
+			host:               "override.depth.allowlist.docker.local",
 			expectedStatusCode: 200,
 		},
 		{
 			desc:               "override depth reject",
 			xForwardedFor:      "10.0.0.1,8.8.8.8,127.0.0.1",
-			host:               "override.depth.whitelist.docker.local",
+			host:               "override.depth.allowlist.docker.local",
 			expectedStatusCode: 403,
 		},
 		{
 			desc:               "override excludedIPs reject",
 			xForwardedFor:      "10.0.0.3,10.0.0.1,10.0.0.2",
-			host:               "override.excludedips.whitelist.docker.local",
+			host:               "override.excludedips.allowlist.docker.local",
 			expectedStatusCode: 403,
 		},
 		{
 			desc:               "override excludedIPs accept",
 			xForwardedFor:      "8.8.8.8,10.0.0.1,10.0.0.2",
-			host:               "override.excludedips.whitelist.docker.local",
+			host:               "override.excludedips.allowlist.docker.local",
 			expectedStatusCode: 200,
 		},
 	}
@@ -467,12 +547,12 @@ func (s *SimpleSuite) TestIPStrategyWhitelist(c *check.C) {
 }
 
 func (s *SimpleSuite) TestXForwardedHeaders(c *check.C) {
-	s.createComposeProject(c, "whitelist")
+	s.createComposeProject(c, "allowlist")
 
 	s.composeUp(c)
 	defer s.composeDown(c)
 
-	cmd, output := s.traefikCmd(withConfigFile("fixtures/simple_whitelist.toml"))
+	cmd, output := s.traefikCmd(withConfigFile("fixtures/simple_allowlist.toml"))
 	defer output(c)
 
 	err := cmd.Start()
@@ -480,13 +560,13 @@ func (s *SimpleSuite) TestXForwardedHeaders(c *check.C) {
 	defer s.killCmd(cmd)
 
 	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 2*time.Second,
-		try.BodyContains("override.remoteaddr.whitelist.docker.local"))
+		try.BodyContains("override.remoteaddr.allowlist.docker.local"))
 	c.Assert(err, checker.IsNil)
 
 	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8000", nil)
 	c.Assert(err, checker.IsNil)
 
-	req.Host = "override.depth.whitelist.docker.local"
+	req.Host = "override.depth.allowlist.docker.local"
 	req.Header.Set("X-Forwarded-For", "8.8.8.8,10.0.0.1,127.0.0.1")
 
 	err = try.Request(req, 1*time.Second,
@@ -663,7 +743,7 @@ func (s *SimpleSuite) TestTCPRouterConfigErrors(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// router4 has an unsupported Rule
-	err = try.GetRequest("http://127.0.0.1:8080/api/tcp/routers/router4@file", 1000*time.Millisecond, try.BodyContains("unknown rule Host(`mydomain.com`)"))
+	err = try.GetRequest("http://127.0.0.1:8080/api/tcp/routers/router4@file", 1000*time.Millisecond, try.BodyContains("invalid rule: \\\"Host(`mydomain.com`)\\\""))
 	c.Assert(err, checker.IsNil)
 }
 
@@ -714,7 +794,7 @@ func (s *SimpleSuite) TestUDPServiceConfigErrors(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer s.killCmd(cmd)
 
-	err = try.GetRequest("http://127.0.0.1:8080/api/udp/services", 1000*time.Millisecond, try.BodyContains(`["the udp service \"service1@file\" does not have any type defined"]`))
+	err = try.GetRequest("http://127.0.0.1:8080/api/udp/services", 1000*time.Millisecond, try.BodyContains(`["the UDP service \"service1@file\" does not have any type defined"]`))
 	c.Assert(err, checker.IsNil)
 
 	err = try.GetRequest("http://127.0.0.1:8080/api/udp/services/service1@file", 1000*time.Millisecond, try.BodyContains(`"status":"disabled"`))
@@ -1087,9 +1167,10 @@ func (s *SimpleSuite) TestSecureAPI(c *check.C) {
 func (s *SimpleSuite) TestContentTypeDisableAutoDetect(c *check.C) {
 	srv1 := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header()["Content-Type"] = nil
-		switch req.URL.Path[:4] {
+		path := strings.TrimPrefix(req.URL.Path, "/autodetect")
+		switch path[:4] {
 		case "/css":
-			if !strings.Contains(req.URL.Path, "noct") {
+			if strings.Contains(req.URL.Path, "/ct") {
 				rw.Header().Set("Content-Type", "text/css")
 			}
 
@@ -1098,7 +1179,7 @@ func (s *SimpleSuite) TestContentTypeDisableAutoDetect(c *check.C) {
 			_, err := rw.Write([]byte(".testcss { }"))
 			c.Assert(err, checker.IsNil)
 		case "/pdf":
-			if !strings.Contains(req.URL.Path, "noct") {
+			if strings.Contains(req.URL.Path, "/ct") {
 				rw.Header().Set("Content-Type", "application/pdf")
 			}
 
@@ -1132,37 +1213,13 @@ func (s *SimpleSuite) TestContentTypeDisableAutoDetect(c *check.C) {
 	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 10*time.Second, try.BodyContains("127.0.0.1"))
 	c.Assert(err, checker.IsNil)
 
-	err = try.GetRequest("http://127.0.0.1:8000/css/ct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
+	err = try.GetRequest("http://127.0.0.1:8000/css/ct", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
 	c.Assert(err, checker.IsNil)
 
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
 	c.Assert(err, checker.IsNil)
 
-	err = try.GetRequest("http://127.0.0.1:8000/css/ct/middlewareauto", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddlewareauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/css/ct/middlewarenoauto", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/ct/nomiddlewarenoauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/css/noct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "text/plain; charset=utf-8", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/nomiddleware", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/css/noct/middlewareauto", time.Second, try.HasHeaderValue("Content-Type", "text/plain; charset=utf-8", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/nomiddlewareauto", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
-	c.Assert(err, checker.IsNil)
-
-	err = try.GetRequest("http://127.0.0.1:8000/css/noct/middlewarenoauto", time.Second, func(res *http.Response) error {
+	err = try.GetRequest("http://127.0.0.1:8000/css/noct", time.Second, func(res *http.Response) error {
 		if ct, ok := res.Header["Content-Type"]; ok {
 			return fmt.Errorf("should have no content type and %s is present", ct)
 		}
@@ -1170,11 +1227,243 @@ func (s *SimpleSuite) TestContentTypeDisableAutoDetect(c *check.C) {
 	})
 	c.Assert(err, checker.IsNil)
 
-	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct/middlewarenoauto", time.Second, func(res *http.Response) error {
+	err = try.GetRequest("http://127.0.0.1:8000/pdf/noct", time.Second, func(res *http.Response) error {
 		if ct, ok := res.Header["Content-Type"]; ok {
 			return fmt.Errorf("should have no content type and %s is present", ct)
 		}
 		return nil
 	})
 	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/autodetect/css/ct", time.Second, try.HasHeaderValue("Content-Type", "text/css", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/autodetect/pdf/ct", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/autodetect/css/noct", time.Second, try.HasHeaderValue("Content-Type", "text/plain; charset=utf-8", false))
+	c.Assert(err, checker.IsNil)
+
+	err = try.GetRequest("http://127.0.0.1:8000/autodetect/pdf/noct", time.Second, try.HasHeaderValue("Content-Type", "application/pdf", false))
+	c.Assert(err, checker.IsNil)
+}
+
+func (s *SimpleSuite) TestMuxer(c *check.C) {
+	s.createComposeProject(c, "base")
+
+	s.composeUp(c)
+	defer s.composeDown(c)
+
+	whoami1URL := "http://" + net.JoinHostPort(s.getComposeServiceIP(c, "whoami1"), "80")
+
+	file := s.adaptFile(c, "fixtures/simple_muxer.toml", struct {
+		Server1 string
+	}{whoami1URL})
+	defer os.Remove(file)
+
+	cmd, output := s.traefikCmd(withConfigFile(file))
+	defer output(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("!Host"))
+	c.Assert(err, checker.IsNil)
+
+	testCases := []struct {
+		desc     string
+		request  string
+		target   string
+		body     string
+		expected int
+	}{
+		{
+			desc:     "!Host with absolute-form URL with empty host and host header, no match",
+			request:  "GET http://@/ HTTP/1.1\r\nHost: test.localhost\r\n\r\n",
+			target:   "127.0.0.1:8000",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!Host with absolute-form URL with empty host and host header, match",
+			request:  "GET http://@/ HTTP/1.1\r\nHost: toto.localhost\r\n\r\n",
+			target:   "127.0.0.1:8000",
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "!Host with absolute-form URL and host header, no match",
+			request:  "GET http://test.localhost/ HTTP/1.1\r\nHost: toto.localhost\r\n\r\n",
+			target:   "127.0.0.1:8000",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!Host with absolute-form URL and host header, match",
+			request:  "GET http://toto.localhost/ HTTP/1.1\r\nHost: test.localhost\r\n\r\n",
+			target:   "127.0.0.1:8000",
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "!HostRegexp with absolute-form URL with empty host and host header, no match",
+			request:  "GET http://@/ HTTP/1.1\r\nHost: test.localhost\r\n\r\n",
+			target:   "127.0.0.1:8001",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!HostRegexp with absolute-form URL with empty host and host header, match",
+			request:  "GET http://@/ HTTP/1.1\r\nHost: toto.localhost\r\n\r\n",
+			target:   "127.0.0.1:8001",
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "!HostRegexp with absolute-form URL and host header, no match",
+			request:  "GET http://test.localhost/ HTTP/1.1\r\nHost: toto.localhost\r\n\r\n",
+			target:   "127.0.0.1:8001",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!HostRegexp with absolute-form URL and host header, match",
+			request:  "GET http://toto.localhost/ HTTP/1.1\r\nHost: test.localhost\r\n\r\n",
+			target:   "127.0.0.1:8001",
+			expected: http.StatusOK,
+		},
+		{
+			desc:     "!Query with semicolon and empty query param value, no match",
+			request:  "GET /?foo=; HTTP/1.1\r\nHost: other.localhost\r\n\r\n",
+			target:   "127.0.0.1:8002",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!Query with semicolon, no match",
+			request:  "GET /?foo=titi;bar=toto HTTP/1.1\r\nHost: other.localhost\r\n\r\n",
+			target:   "127.0.0.1:8002",
+			expected: http.StatusNotFound,
+		},
+		{
+			desc:     "!Query with semicolon, match",
+			request:  "GET /?bar=toto;boo=titi HTTP/1.1\r\nHost: other.localhost\r\n\r\n",
+			target:   "127.0.0.1:8002",
+			expected: http.StatusOK,
+			body:     "bar=toto&boo=titi",
+		},
+	}
+
+	for _, test := range testCases {
+		conn, err := net.Dial("tcp", test.target)
+		c.Assert(err, checker.IsNil)
+
+		_, err = conn.Write([]byte(test.request))
+		c.Assert(err, checker.IsNil)
+
+		resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+		c.Assert(err, checker.IsNil)
+
+		c.Assert(resp.StatusCode, checker.Equals, test.expected, check.Commentf(test.desc))
+
+		if test.body != "" {
+			body, err := io.ReadAll(resp.Body)
+			c.Assert(err, checker.IsNil)
+			c.Assert(string(body), checker.Contains, test.body)
+		}
+	}
+}
+
+func (s *SimpleSuite) TestDebugLog(c *check.C) {
+	s.createComposeProject(c, "base")
+
+	s.composeUp(c)
+	defer s.composeDown(c)
+
+	file := s.adaptFile(c, "fixtures/simple_debug_log.toml", struct{}{})
+	defer os.Remove(file)
+
+	cmd, output := s.cmdTraefik(withConfigFile(file))
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("PathPrefix(`/whoami`)"))
+	c.Assert(err, checker.IsNil)
+
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/whoami", http.NoBody)
+	c.Assert(err, checker.IsNil)
+	req.Header.Set("Autorization", "Bearer ThisIsABearerToken")
+
+	response, err := http.DefaultClient.Do(req)
+	c.Assert(err, checker.IsNil)
+	c.Assert(response.StatusCode, checker.Equals, http.StatusOK)
+
+	if regexp.MustCompile("ThisIsABearerToken").MatchReader(output) {
+		c.Logf("Traefik Logs: %s", output.String())
+		c.Log("Found Authorization Header in Traefik DEBUG logs")
+		c.Fail()
+	}
+}
+
+func (s *SimpleSuite) TestEncodeSemicolons(c *check.C) {
+	s.createComposeProject(c, "base")
+
+	s.composeUp(c)
+	defer s.composeDown(c)
+
+	whoami1URL := "http://" + net.JoinHostPort(s.getComposeServiceIP(c, "whoami1"), "80")
+
+	file := s.adaptFile(c, "fixtures/simple_encode_semicolons.toml", struct {
+		Server1 string
+	}{whoami1URL})
+	defer os.Remove(file)
+
+	cmd, output := s.traefikCmd(withConfigFile(file))
+	defer output(c)
+
+	err := cmd.Start()
+	c.Assert(err, checker.IsNil)
+	defer s.killCmd(cmd)
+
+	err = try.GetRequest("http://127.0.0.1:8080/api/rawdata", 1*time.Second, try.BodyContains("Host(`other.localhost`)"))
+	c.Assert(err, checker.IsNil)
+
+	testCases := []struct {
+		desc     string
+		request  string
+		target   string
+		body     string
+		expected int
+	}{
+		{
+			desc:     "Transforming semicolons",
+			request:  "GET /?bar=toto;boo=titi HTTP/1.1\r\nHost: other.localhost\r\n\r\n",
+			target:   "127.0.0.1:8000",
+			expected: http.StatusOK,
+			body:     "bar=toto&boo=titi",
+		},
+		{
+			desc:     "Encoding semicolons",
+			request:  "GET /?bar=toto&boo=titi;aaaa HTTP/1.1\r\nHost: other.localhost\r\n\r\n",
+			target:   "127.0.0.1:8001",
+			expected: http.StatusOK,
+			body:     "bar=toto&boo=titi%3Baaaa",
+		},
+	}
+
+	for _, test := range testCases {
+		conn, err := net.Dial("tcp", test.target)
+		c.Assert(err, checker.IsNil)
+
+		_, err = conn.Write([]byte(test.request))
+		c.Assert(err, checker.IsNil)
+
+		resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+		c.Assert(err, checker.IsNil)
+
+		if resp.StatusCode != test.expected {
+			c.Errorf("%s failed with %d instead of %d", test.desc, resp.StatusCode, test.expected)
+		}
+
+		if test.body != "" {
+			body, err := io.ReadAll(resp.Body)
+			c.Assert(err, checker.IsNil)
+			c.Assert(string(body), checker.Contains, test.body)
+		}
+	}
 }
