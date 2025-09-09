@@ -21,8 +21,11 @@ import (
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/logs"
 	"github.com/traefik/traefik/v3/pkg/middlewares/capture"
+	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
+	"go.opentelemetry.io/contrib/bridges/otellogrus"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type key string
@@ -52,6 +55,7 @@ func (n noopCloser) Close() error {
 }
 
 type handlerParams struct {
+	ctx          context.Context
 	logDataTable *LogData
 }
 
@@ -66,17 +70,22 @@ type Handler struct {
 	wg             sync.WaitGroup
 }
 
-// WrapHandler Wraps access log handler into an Alice Constructor.
-func WrapHandler(handler *Handler) alice.Constructor {
+// AliceConstructor returns an alice.Constructor that wraps the Handler (conditionally) in a middleware chain.
+func (h *Handler) AliceConstructor() alice.Constructor {
 	return func(next http.Handler) (http.Handler, error) {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			handler.ServeHTTP(rw, req, next)
+			if h == nil {
+				next.ServeHTTP(rw, req)
+				return
+			}
+
+			h.ServeHTTP(rw, req, next)
 		}), nil
 	}
 }
 
 // NewHandler creates a new Handler.
-func NewHandler(config *types.AccessLog) (*Handler, error) {
+func NewHandler(ctx context.Context, config *types.AccessLog) (*Handler, error) {
 	var file io.WriteCloser = noopCloser{os.Stdout}
 	if len(config.FilePath) > 0 {
 		f, err := openAccessLogFile(config.FilePath)
@@ -106,15 +115,38 @@ func NewHandler(config *types.AccessLog) (*Handler, error) {
 		Level:     logrus.InfoLevel,
 	}
 
-	// Transform headers names in config to a canonical form, to be used as is without further transformations.
-	if config.Fields != nil && config.Fields.Headers != nil && len(config.Fields.Headers.Names) > 0 {
-		fields := map[string]string{}
-
-		for h, v := range config.Fields.Headers.Names {
-			fields[textproto.CanonicalMIMEHeaderKey(h)] = v
+	if config.OTLP != nil {
+		otelLoggerProvider, err := config.OTLP.NewLoggerProvider(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("setting up OpenTelemetry logger provider: %w", err)
 		}
 
-		config.Fields.Headers.Names = fields
+		logger.Hooks.Add(otellogrus.NewHook("traefik", otellogrus.WithLoggerProvider(otelLoggerProvider)))
+		logger.Out = io.Discard
+	}
+
+	// Transform header names to a canonical form, to be used as is without further transformations,
+	// and transform field names to lower case, to enable case-insensitive lookup.
+	if config.Fields != nil {
+		if len(config.Fields.Names) > 0 {
+			fields := map[string]string{}
+
+			for h, v := range config.Fields.Names {
+				fields[strings.ToLower(h)] = v
+			}
+
+			config.Fields.Names = fields
+		}
+
+		if config.Fields.Headers != nil && len(config.Fields.Headers.Names) > 0 {
+			fields := map[string]string{}
+
+			for h, v := range config.Fields.Headers.Names {
+				fields[textproto.CanonicalMIMEHeaderKey(h)] = v
+			}
+
+			config.Fields.Headers.Names = fields
+		}
 	}
 
 	logHandler := &Handler{
@@ -137,7 +169,7 @@ func NewHandler(config *types.AccessLog) (*Handler, error) {
 		go func() {
 			defer logHandler.wg.Done()
 			for handlerParams := range logHandler.logHandlerChan {
-				logHandler.logTheRoundTrip(handlerParams.logDataTable)
+				logHandler.logTheRoundTrip(handlerParams.ctx, handlerParams.logDataTable)
 			}
 		}()
 	}
@@ -170,6 +202,12 @@ func GetLogData(req *http.Request) *LogData {
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http.Handler) {
+	if !observability.AccessLogsEnabled(req.Context()) {
+		next.ServeHTTP(rw, req)
+
+		return
+	}
+
 	now := time.Now().UTC()
 
 	core := CoreLogData{
@@ -184,15 +222,13 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http
 		},
 	}
 
-	defer func() {
-		if h.config.BufferingSize > 0 {
-			h.logHandlerChan <- handlerParams{
-				logDataTable: logDataTable,
-			}
-			return
+	if span := trace.SpanFromContext(req.Context()); span != nil {
+		spanContext := span.SpanContext()
+		if spanContext.HasTraceID() && spanContext.HasSpanID() {
+			logDataTable.Core[TraceID] = spanContext.TraceID().String()
+			logDataTable.Core[SpanID] = spanContext.SpanID().String()
 		}
-		h.logTheRoundTrip(logDataTable)
-	}()
+	}
 
 	reqWithDataTable := req.WithContext(context.WithValue(req.Context(), DataTableKey, logDataTable))
 
@@ -238,19 +274,31 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request, next http
 		return
 	}
 
+	defer func() {
+		logDataTable.DownstreamResponse = downstreamResponse{
+			headers: rw.Header().Clone(),
+		}
+
+		logDataTable.DownstreamResponse.status = capt.StatusCode()
+		logDataTable.DownstreamResponse.size = capt.ResponseSize()
+		logDataTable.Request.size = capt.RequestSize()
+
+		if _, ok := core[ClientUsername]; !ok {
+			core[ClientUsername] = usernameIfPresent(reqWithDataTable.URL)
+		}
+
+		if h.config.BufferingSize > 0 {
+			h.logHandlerChan <- handlerParams{
+				ctx:          req.Context(),
+				logDataTable: logDataTable,
+			}
+			return
+		}
+
+		h.logTheRoundTrip(req.Context(), logDataTable)
+	}()
+
 	next.ServeHTTP(rw, reqWithDataTable)
-
-	if _, ok := core[ClientUsername]; !ok {
-		core[ClientUsername] = usernameIfPresent(reqWithDataTable.URL)
-	}
-
-	logDataTable.DownstreamResponse = downstreamResponse{
-		headers: rw.Header().Clone(),
-	}
-
-	logDataTable.DownstreamResponse.status = capt.StatusCode()
-	logDataTable.DownstreamResponse.size = capt.ResponseSize()
-	logDataTable.Request.size = capt.RequestSize()
 }
 
 // Close closes the Logger (i.e. the file, drain logHandlerChan, etc).
@@ -299,7 +347,7 @@ func usernameIfPresent(theURL *url.URL) string {
 }
 
 // Logging handler to log frontend name, backend name, and elapsed time.
-func (h *Handler) logTheRoundTrip(logDataTable *LogData) {
+func (h *Handler) logTheRoundTrip(ctx context.Context, logDataTable *LogData) {
 	core := logDataTable.Core
 
 	retryAttempts, ok := core[RetryAttempts].(int)
@@ -316,45 +364,63 @@ func (h *Handler) logTheRoundTrip(logDataTable *LogData) {
 	totalDuration := time.Now().UTC().Sub(core[StartUTC].(time.Time))
 	core[Duration] = totalDuration
 
-	if h.keepAccessLog(status, retryAttempts, totalDuration) {
-		size := logDataTable.DownstreamResponse.size
-		core[DownstreamContentSize] = size
-		if original, ok := core[OriginContentSize]; ok {
-			o64 := original.(int64)
-			if size != o64 && size != 0 {
-				core[GzipRatio] = float64(o64) / float64(size)
-			}
-		}
-
-		core[Overhead] = totalDuration
-		if origin, ok := core[OriginDuration]; ok {
-			core[Overhead] = totalDuration - origin.(time.Duration)
-		}
-
-		fields := logrus.Fields{}
-
-		for k, v := range logDataTable.Core {
-			if h.config.Fields.Keep(k) {
-				fields[k] = v
-			}
-		}
-
-		h.redactHeaders(logDataTable.Request.headers, fields, "request_")
-		h.redactHeaders(logDataTable.OriginResponse, fields, "origin_")
-		h.redactHeaders(logDataTable.DownstreamResponse.headers, fields, "downstream_")
-
-		h.mu.Lock()
-		defer h.mu.Unlock()
-		h.logger.WithFields(fields).Println()
+	if !h.keepAccessLog(status, retryAttempts, totalDuration) {
+		return
 	}
+
+	size := logDataTable.DownstreamResponse.size
+	core[DownstreamContentSize] = size
+	if original, ok := core[OriginContentSize]; ok {
+		o64 := original.(int64)
+		if size != o64 && size != 0 {
+			core[GzipRatio] = float64(o64) / float64(size)
+		}
+	}
+
+	core[Overhead] = totalDuration
+	if origin, ok := core[OriginDuration]; ok {
+		core[Overhead] = totalDuration - origin.(time.Duration)
+	}
+
+	fields := logrus.Fields{}
+
+	for k, v := range logDataTable.Core {
+		if h.config.Fields.Keep(strings.ToLower(k)) {
+			fields[k] = v
+		}
+	}
+
+	h.redactHeaders(logDataTable.Request.headers, fields, "request_")
+	h.redactHeaders(logDataTable.OriginResponse, fields, "origin_")
+	h.redactHeaders(logDataTable.DownstreamResponse.headers, fields, "downstream_")
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	entry := h.logger.WithContext(ctx).WithFields(fields)
+
+	var message string
+	if h.config.OTLP != nil {
+		// If the logger is configured to use OpenTelemetry,
+		// we compute the log body with the formatter.
+		mBytes, err := h.logger.Formatter.Format(entry)
+		if err != nil {
+			message = fmt.Sprintf("Failed to format access log entry: %v", err)
+		} else {
+			message = string(mBytes)
+		}
+	}
+
+	entry.Println(message)
 }
 
 func (h *Handler) redactHeaders(headers http.Header, fields logrus.Fields, prefix string) {
 	for k := range headers {
 		v := h.config.Fields.KeepHeader(k)
-		if v == types.AccessLogKeep {
+		switch v {
+		case types.AccessLogKeep:
 			fields[prefix+k] = strings.Join(headers.Values(k), ",")
-		} else if v == types.AccessLogRedact {
+		case types.AccessLogRedact:
 			fields[prefix+k] = "REDACTED"
 		}
 	}

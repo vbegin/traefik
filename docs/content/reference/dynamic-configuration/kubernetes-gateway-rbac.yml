@@ -11,14 +11,29 @@ rules:
     verbs:
       - list
       - watch
+  # The pods get right is needed to inject k8s.pod.uid and k8s.pod.name in OTel attributes.
+  # When OTel tracing/logs/metrics are not enabled, this rule is not needed.
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
   - apiGroups:
       - ""
     resources:
       - services
-      - endpoints
       - secrets
+      - configmaps
     verbs:
       - get
+      - list
+      - watch
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs:
       - list
       - watch
   - apiGroups:
@@ -27,8 +42,11 @@ rules:
       - gatewayclasses
       - gateways
       - httproutes
+      - grpcroutes
       - tcproutes
       - tlsroutes
+      - referencegrants
+      - backendtlspolicies
     verbs:
       - get
       - list
@@ -39,8 +57,11 @@ rules:
       - gatewayclasses/status
       - gateways/status
       - httproutes/status
+      - grpcroutes/status
       - tcproutes/status
       - tlsroutes/status
+      - referencegrants/status
+      - backendtlspolicies/status
     verbs:
       - update
 

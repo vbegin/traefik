@@ -65,13 +65,14 @@ func TestClientIPMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -139,13 +140,14 @@ func TestMethodMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -257,13 +259,14 @@ func TestHostMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -357,13 +360,14 @@ func TestHostRegexpMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -431,13 +435,14 @@ func TestPathMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -524,13 +529,14 @@ func TestPathRegexpMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -596,13 +602,14 @@ func TestPathPrefixMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -683,14 +690,14 @@ func TestHeaderMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -792,13 +799,14 @@ func TestHeaderRegexpMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -881,13 +889,14 @@ func TestQueryMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {
@@ -995,13 +1004,14 @@ func TestQueryRegexpMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "", 0, handler)
 			if test.expectedError {

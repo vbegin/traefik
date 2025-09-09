@@ -31,7 +31,6 @@ func Test_HostSNICatchAll(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -134,10 +133,15 @@ func Test_HostSNI(t *testing.T) {
 			serverName: "foo.example.com",
 			match:      true,
 		},
+		{
+			desc:       "Matching hosts with subdomains with _",
+			rule:       "HostSNI(`foo_bar.example.com`)",
+			serverName: "foo_bar.example.com",
+			match:      true,
+		},
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -220,7 +224,6 @@ func Test_HostSNIRegexp(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -292,7 +295,6 @@ func Test_ClientIP(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -356,7 +358,6 @@ func Test_ALPN(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 

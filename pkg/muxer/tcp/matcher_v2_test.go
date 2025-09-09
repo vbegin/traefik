@@ -461,8 +461,6 @@ func Test_addTCPRouteV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -561,7 +559,6 @@ func TestParseHostSNIV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.expression, func(t *testing.T) {
 			t.Parallel()
 
@@ -573,7 +570,7 @@ func TestParseHostSNIV2(t *testing.T) {
 				require.NoError(t, err, "%s: Error while parsing domain.", test.expression)
 			}
 
-			assert.EqualValues(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
+			assert.Equal(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
 		})
 	}
 }
@@ -606,8 +603,6 @@ func Test_HostSNICatchAllV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -696,6 +691,11 @@ func Test_HostSNIV2(t *testing.T) {
 			serverName: "foo.bar",
 		},
 		{
+			desc:       "Matching hosts with subdomains with _",
+			ruleHosts:  []string{"foo_bar.example.com"},
+			serverName: "foo_bar.example.com",
+		},
+		{
 			desc:       "Matching IPv4",
 			ruleHosts:  []string{"127.0.0.1"},
 			serverName: "127.0.0.1",
@@ -708,8 +708,6 @@ func Test_HostSNIV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -823,8 +821,6 @@ func Test_HostSNIRegexpV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -916,8 +912,6 @@ func Test_ClientIPV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -985,8 +979,6 @@ func Test_ALPNV2(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 

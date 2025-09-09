@@ -39,8 +39,65 @@ Keep access logs with status codes in the specified range.
 `--accesslog.format`:  
 Access log format: json | common (Default: ```common```)
 
+`--accesslog.otlp`:  
+Settings for OpenTelemetry. (Default: ```false```)
+
+`--accesslog.otlp.grpc`:  
+gRPC configuration for the OpenTelemetry collector. (Default: ```false```)
+
+`--accesslog.otlp.grpc.endpoint`:  
+Sets the gRPC endpoint (host:port) of the collector. (Default: ```localhost:4317```)
+
+`--accesslog.otlp.grpc.headers.<name>`:  
+Headers sent with payload.
+
+`--accesslog.otlp.grpc.insecure`:  
+Disables client transport security for the exporter. (Default: ```false```)
+
+`--accesslog.otlp.grpc.tls.ca`:  
+TLS CA
+
+`--accesslog.otlp.grpc.tls.cert`:  
+TLS cert
+
+`--accesslog.otlp.grpc.tls.insecureskipverify`:  
+TLS insecure skip verify (Default: ```false```)
+
+`--accesslog.otlp.grpc.tls.key`:  
+TLS key
+
+`--accesslog.otlp.http`:  
+HTTP configuration for the OpenTelemetry collector. (Default: ```false```)
+
+`--accesslog.otlp.http.endpoint`:  
+Sets the HTTP endpoint (scheme://host:port/path) of the collector. (Default: ```https://localhost:4318```)
+
+`--accesslog.otlp.http.headers.<name>`:  
+Headers sent with payload.
+
+`--accesslog.otlp.http.tls.ca`:  
+TLS CA
+
+`--accesslog.otlp.http.tls.cert`:  
+TLS cert
+
+`--accesslog.otlp.http.tls.insecureskipverify`:  
+TLS insecure skip verify (Default: ```false```)
+
+`--accesslog.otlp.http.tls.key`:  
+TLS key
+
+`--accesslog.otlp.resourceattributes.<name>`:  
+Defines additional resource attributes (key:value).
+
+`--accesslog.otlp.servicename`:  
+Defines the service name resource attribute. (Default: ```traefik```)
+
 `--api`:  
 Enable api/dashboard. (Default: ```false```)
+
+`--api.basepath`:  
+Defines the base path where the API and Dashboard will be exposed. (Default: ```/```)
 
 `--api.dashboard`:  
 Activate dashboard. (Default: ```true```)
@@ -57,20 +114,50 @@ Activate API directly on the entryPoint named traefik. (Default: ```false```)
 `--certificatesresolvers.<name>`:  
 Certificates resolvers configuration. (Default: ```false```)
 
+`--certificatesresolvers.<name>.acme.cacertificates`:  
+Specify the paths to PEM encoded CA Certificates that can be used to authenticate an ACME server with an HTTPS certificate not issued by a CA in the system-wide trusted root list.
+
 `--certificatesresolvers.<name>.acme.caserver`:  
 CA server to use. (Default: ```https://acme-v02.api.letsencrypt.org/directory```)
 
+`--certificatesresolvers.<name>.acme.caservername`:  
+Specify the CA server name that can be used to authenticate an ACME server with an HTTPS certificate not issued by a CA in the system-wide trusted root list.
+
+`--certificatesresolvers.<name>.acme.casystemcertpool`:  
+Define if the certificates pool must use a copy of the system cert pool. (Default: ```false```)
+
 `--certificatesresolvers.<name>.acme.certificatesduration`:  
 Certificates' duration in hours. (Default: ```2160```)
+
+`--certificatesresolvers.<name>.acme.clientresponseheadertimeout`:  
+Timeout for receiving the response headers when communicating with the ACME server. (Default: ```30```)
+
+`--certificatesresolvers.<name>.acme.clienttimeout`:  
+Timeout for a complete HTTP transaction with the ACME server. (Default: ```120```)
 
 `--certificatesresolvers.<name>.acme.dnschallenge`:  
 Activate DNS-01 Challenge. (Default: ```false```)
 
 `--certificatesresolvers.<name>.acme.dnschallenge.delaybeforecheck`:  
-Assume DNS propagates after a delay in seconds rather than finding and querying nameservers. (Default: ```0```)
+(Deprecated) Assume DNS propagates after a delay in seconds rather than finding and querying nameservers. (Default: ```0```)
 
 `--certificatesresolvers.<name>.acme.dnschallenge.disablepropagationcheck`:  
-Disable the DNS propagation checks before notifying ACME that the DNS challenge is ready. [not recommended] (Default: ```false```)
+(Deprecated) Disable the DNS propagation checks before notifying ACME that the DNS challenge is ready. [not recommended] (Default: ```false```)
+
+`--certificatesresolvers.<name>.acme.dnschallenge.propagation`:  
+DNS propagation checks configuration (Default: ```false```)
+
+`--certificatesresolvers.<name>.acme.dnschallenge.propagation.delaybeforechecks`:  
+Defines the delay before checking the challenge TXT record propagation. (Default: ```0```)
+
+`--certificatesresolvers.<name>.acme.dnschallenge.propagation.disableanschecks`:  
+Disables the challenge TXT record propagation checks against authoritative nameservers. (Default: ```false```)
+
+`--certificatesresolvers.<name>.acme.dnschallenge.propagation.disablechecks`:  
+Disables the challenge TXT record propagation checks (not recommended). (Default: ```false```)
+
+`--certificatesresolvers.<name>.acme.dnschallenge.propagation.requireallrns`:  
+Requires the challenge TXT record to be propagated to all recursive nameservers. (Default: ```false```)
 
 `--certificatesresolvers.<name>.acme.dnschallenge.provider`:  
 Use a DNS-01 based challenge provider rather than HTTPS.
@@ -87,8 +174,14 @@ Key identifier from External CA.
 `--certificatesresolvers.<name>.acme.email`:  
 Email address used for registration.
 
+`--certificatesresolvers.<name>.acme.emailaddresses`:  
+CSR email addresses to use.
+
 `--certificatesresolvers.<name>.acme.httpchallenge`:  
 Activate HTTP-01 Challenge. (Default: ```false```)
+
+`--certificatesresolvers.<name>.acme.httpchallenge.delay`:  
+Delay between the creation of the challenge and the validation. (Default: ```0```)
 
 `--certificatesresolvers.<name>.acme.httpchallenge.entrypoint`:  
 HTTP challenge EntryPoint
@@ -98,6 +191,9 @@ KeyType used for generating certificate private key. Allow value 'EC256', 'EC384
 
 `--certificatesresolvers.<name>.acme.preferredchain`:  
 Preferred chain to use.
+
+`--certificatesresolvers.<name>.acme.profile`:  
+Certificate profile to use.
 
 `--certificatesresolvers.<name>.acme.storage`:  
 Storage to use. (Default: ```acme.json```)
@@ -117,8 +213,14 @@ Entry points definition. (Default: ```false```)
 `--entrypoints.<name>.address`:  
 Entry point address.
 
+`--entrypoints.<name>.allowacmebypass`:  
+Enables handling of ACME TLS and HTTP challenges with custom routers. (Default: ```false```)
+
 `--entrypoints.<name>.asdefault`:  
 Adds this EntryPoint to the list of default EntryPoints to be used on routers that don't have any Entrypoint defined. (Default: ```false```)
+
+`--entrypoints.<name>.forwardedheaders.connection`:  
+List of Connection headers that are allowed to pass through the middleware chain before being removed.
 
 `--entrypoints.<name>.forwardedheaders.insecure`:  
 Trust all forwarded headers. (Default: ```false```)
@@ -132,6 +234,9 @@ HTTP configuration.
 `--entrypoints.<name>.http.encodequerysemicolons`:  
 Defines whether request query semicolons should be URLEncoded. (Default: ```false```)
 
+`--entrypoints.<name>.http.maxheaderbytes`:  
+Maximum size of request headers in bytes. (Default: ```1048576```)
+
 `--entrypoints.<name>.http.middlewares`:  
 Default middlewares for the routers linked to the entry point.
 
@@ -139,13 +244,16 @@ Default middlewares for the routers linked to the entry point.
 Applies a permanent redirection. (Default: ```true```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.priority`:  
-Priority of the generated router. (Default: ```2147483646```)
+Priority of the generated router. (Default: ```9223372036854775806```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.scheme`:  
 Scheme used for the redirection. (Default: ```https```)
 
 `--entrypoints.<name>.http.redirections.entrypoint.to`:  
 Targeted entry point of the redirection.
+
+`--entrypoints.<name>.http.sanitizepath`:  
+Defines whether to enable request path sanitization (removal of /./, /../ and multiple slash sequences). (Default: ```true```)
 
 `--entrypoints.<name>.http.tls`:  
 Default TLS configuration for the routers linked to the entry point. (Default: ```false```)
@@ -173,6 +281,18 @@ HTTP/3 configuration. (Default: ```false```)
 
 `--entrypoints.<name>.http3.advertisedport`:  
 UDP port to advertise, on which HTTP/3 is available. (Default: ```0```)
+
+`--entrypoints.<name>.observability.accesslogs`:  
+Enables access-logs for this entryPoint. (Default: ```true```)
+
+`--entrypoints.<name>.observability.metrics`:  
+Enables metrics for this entryPoint. (Default: ```true```)
+
+`--entrypoints.<name>.observability.traceverbosity`:  
+Defines the tracing verbosity level for this entryPoint. (Default: ```minimal```)
+
+`--entrypoints.<name>.observability.tracing`:  
+Enables tracing for this entryPoint. (Default: ```true```)
 
 `--entrypoints.<name>.proxyprotocol`:  
 Proxy-Protocol configuration. (Default: ```false```)
@@ -202,7 +322,7 @@ Duration to keep accepting requests before Traefik initiates the graceful shutdo
 IdleTimeout is the maximum amount duration an idle (keep-alive) connection will remain idle before closing itself. If zero, no timeout is set. (Default: ```180```)
 
 `--entrypoints.<name>.transport.respondingtimeouts.readtimeout`:  
-ReadTimeout is the maximum duration for reading the entire request, including the body. If zero, no timeout is set. (Default: ```0```)
+ReadTimeout is the maximum duration for reading the entire request, including the body. If zero, no timeout is set. (Default: ```60```)
 
 `--entrypoints.<name>.transport.respondingtimeouts.writetimeout`:  
 WriteTimeout is the maximum duration before timing out writes of the response. If zero, no timeout is set. (Default: ```0```)
@@ -210,17 +330,56 @@ WriteTimeout is the maximum duration before timing out writes of the response. I
 `--entrypoints.<name>.udp.timeout`:  
 Timeout defines how long to wait on an idle session before releasing the related resources. (Default: ```3```)
 
+`--experimental.abortonpluginfailure`:  
+Defines whether all plugins must be loaded successfully for Traefik to start. (Default: ```false```)
+
+`--experimental.fastproxy`:  
+Enables the FastProxy implementation. (Default: ```false```)
+
+`--experimental.fastproxy.debug`:  
+Enable debug mode for the FastProxy implementation. (Default: ```false```)
+
 `--experimental.kubernetesgateway`:  
-Allow the Kubernetes gateway api provider usage. (Default: ```false```)
+(Deprecated) Allow the Kubernetes gateway api provider usage. (Default: ```false```)
+
+`--experimental.kubernetesingressnginx`:  
+Allow the Kubernetes Ingress NGINX provider usage. (Default: ```false```)
 
 `--experimental.localplugins.<name>`:  
 Local plugins configuration. (Default: ```false```)
 
 `--experimental.localplugins.<name>.modulename`:  
-plugin's module name.
+Plugin's module name.
+
+`--experimental.localplugins.<name>.settings`:  
+Plugin's settings (works only for wasm plugins).
+
+`--experimental.localplugins.<name>.settings.envs`:  
+Environment variables to forward to the wasm guest.
+
+`--experimental.localplugins.<name>.settings.mounts`:  
+Directory to mount to the wasm guest.
+
+`--experimental.localplugins.<name>.settings.useunsafe`:  
+Allow the plugin to use unsafe package. (Default: ```false```)
+
+`--experimental.otlplogs`:  
+Enables the OpenTelemetry logs integration. (Default: ```false```)
 
 `--experimental.plugins.<name>.modulename`:  
 plugin's module name.
+
+`--experimental.plugins.<name>.settings`:  
+Plugin's settings (works only for wasm plugins).
+
+`--experimental.plugins.<name>.settings.envs`:  
+Environment variables to forward to the wasm guest.
+
+`--experimental.plugins.<name>.settings.mounts`:  
+Directory to mount to the wasm guest.
+
+`--experimental.plugins.<name>.settings.useunsafe`:  
+Allow the plugin to use unsafe package. (Default: ```false```)
 
 `--experimental.plugins.<name>.version`:  
 plugin's version.
@@ -269,6 +428,60 @@ Maximum size in megabytes of the log file before it gets rotated. (Default: ```0
 
 `--log.nocolor`:  
 When using the 'common' format, disables the colorized output. (Default: ```false```)
+
+`--log.otlp`:  
+Settings for OpenTelemetry. (Default: ```false```)
+
+`--log.otlp.grpc`:  
+gRPC configuration for the OpenTelemetry collector. (Default: ```false```)
+
+`--log.otlp.grpc.endpoint`:  
+Sets the gRPC endpoint (host:port) of the collector. (Default: ```localhost:4317```)
+
+`--log.otlp.grpc.headers.<name>`:  
+Headers sent with payload.
+
+`--log.otlp.grpc.insecure`:  
+Disables client transport security for the exporter. (Default: ```false```)
+
+`--log.otlp.grpc.tls.ca`:  
+TLS CA
+
+`--log.otlp.grpc.tls.cert`:  
+TLS cert
+
+`--log.otlp.grpc.tls.insecureskipverify`:  
+TLS insecure skip verify (Default: ```false```)
+
+`--log.otlp.grpc.tls.key`:  
+TLS key
+
+`--log.otlp.http`:  
+HTTP configuration for the OpenTelemetry collector. (Default: ```false```)
+
+`--log.otlp.http.endpoint`:  
+Sets the HTTP endpoint (scheme://host:port/path) of the collector. (Default: ```https://localhost:4318```)
+
+`--log.otlp.http.headers.<name>`:  
+Headers sent with payload.
+
+`--log.otlp.http.tls.ca`:  
+TLS CA
+
+`--log.otlp.http.tls.cert`:  
+TLS cert
+
+`--log.otlp.http.tls.insecureskipverify`:  
+TLS insecure skip verify (Default: ```false```)
+
+`--log.otlp.http.tls.key`:  
+TLS key
+
+`--log.otlp.resourceattributes.<name>`:  
+Defines additional resource attributes (key:value).
+
+`--log.otlp.servicename`:  
+Defines the service name resource attribute. (Default: ```traefik```)
 
 `--metrics.addinternals`:  
 Enables metrics for internal services (ping, dashboard, etc...). (Default: ```false```)
@@ -337,7 +550,10 @@ Enable metrics on routers. (Default: ```false```)
 Enable metrics on services. (Default: ```true```)
 
 `--metrics.otlp.explicitboundaries`:  
-Boundaries for latency metrics. (Default: ```0.005000, 0.010000, 0.025000, 0.050000, 0.100000, 0.250000, 0.500000, 1.000000, 2.500000, 5.000000, 10.000000```)
+Boundaries for latency metrics. (Default: ```0.005000, 0.010000, 0.025000, 0.050000, 0.075000, 0.100000, 0.250000, 0.500000, 0.750000, 1.000000, 2.500000, 5.000000, 7.500000, 10.000000```)
+
+`--metrics.otlp.grpc`:  
+gRPC configuration for the OpenTelemetry collector. (Default: ```false```)
 
 `--metrics.otlp.grpc.endpoint`:  
 Sets the gRPC endpoint (host:port) of the collector. (Default: ```localhost:4317```)
@@ -360,6 +576,9 @@ TLS insecure skip verify (Default: ```false```)
 `--metrics.otlp.grpc.tls.key`:  
 TLS key
 
+`--metrics.otlp.http`:  
+HTTP configuration for the OpenTelemetry collector. (Default: ```false```)
+
 `--metrics.otlp.http.endpoint`:  
 Sets the HTTP endpoint (scheme://host:port/path) of the collector. (Default: ```https://localhost:4318```)
 
@@ -380,6 +599,12 @@ TLS key
 
 `--metrics.otlp.pushinterval`:  
 Period between calls to collect a checkpoint. (Default: ```10```)
+
+`--metrics.otlp.resourceattributes.<name>`:  
+Defines additional resource attributes (key:value).
+
+`--metrics.otlp.servicename`:  
+Defines the service name resource attribute. (Default: ```traefik```)
 
 `--metrics.prometheus`:  
 Prometheus metrics exporter type. (Default: ```false```)
@@ -425,6 +650,12 @@ Prefix to use for metrics collection. (Default: ```traefik```)
 
 `--metrics.statsd.pushinterval`:  
 StatsD push interval. (Default: ```10```)
+
+`--ocsp`:  
+OCSP configuration. (Default: ```false```)
+
+`--ocsp.responderoverrides.<name>`:  
+Defines a map of OCSP responders to replace for querying OCSP servers.
 
 `--ping`:  
 Enable ping. (Default: ```false```)
@@ -537,6 +768,9 @@ Name of the Traefik service in Consul Catalog (needs to be registered via the or
 `--providers.consulcatalog.stale`:  
 Use stale consistency for catalog reads. (Default: ```false```)
 
+`--providers.consulcatalog.strictchecks`:  
+A list of service health statuses to allow taking traffic. (Default: ```passing, warning```)
+
 `--providers.consulcatalog.watch`:  
 Watch Consul API events. (Default: ```false```)
 
@@ -564,6 +798,9 @@ Client timeout for HTTP connections. (Default: ```0```)
 `--providers.docker.network`:  
 Default Docker network used.
 
+`--providers.docker.password`:  
+Password for Basic HTTP authentication.
+
 `--providers.docker.tls.ca`:  
 TLS CA
 
@@ -578,6 +815,9 @@ TLS key
 
 `--providers.docker.usebindportip`:  
 Use the ip address from the bound port, rather than from the inner network. (Default: ```false```)
+
+`--providers.docker.username`:  
+Username for Basic HTTP authentication.
 
 `--providers.docker.watch`:  
 Watch Docker events. (Default: ```true```)
@@ -699,6 +939,9 @@ Allow ExternalName services. (Default: ```false```)
 `--providers.kubernetescrd.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
 
+`--providers.kubernetescrd.disableclusterscoperesources`:  
+Disables the lookup of cluster scope resources (incompatible with IngressClasses and NodePortLB enabled services). (Default: ```false```)
+
 `--providers.kubernetescrd.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).
 
@@ -710,6 +953,9 @@ Kubernetes label selector to use.
 
 `--providers.kubernetescrd.namespaces`:  
 Kubernetes namespaces.
+
+`--providers.kubernetescrd.nativelbbydefault`:  
+Defines whether to use Native Kubernetes load-balancing mode by default. (Default: ```false```)
 
 `--providers.kubernetescrd.throttleduration`:  
 Ingress refresh throttle duration (Default: ```0```)
@@ -726,11 +972,32 @@ Kubernetes certificate authority file path (not needed for in-cluster client).
 `--providers.kubernetesgateway.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).
 
+`--providers.kubernetesgateway.experimentalchannel`:  
+Toggles Experimental Channel resources support (TCPRoute, TLSRoute...). (Default: ```false```)
+
 `--providers.kubernetesgateway.labelselector`:  
 Kubernetes label selector to select specific GatewayClasses.
 
 `--providers.kubernetesgateway.namespaces`:  
 Kubernetes namespaces.
+
+`--providers.kubernetesgateway.nativelbbydefault`:  
+Defines whether to use Native Kubernetes load-balancing by default. (Default: ```false```)
+
+`--providers.kubernetesgateway.statusaddress.hostname`:  
+Hostname used for Kubernetes Gateway status address.
+
+`--providers.kubernetesgateway.statusaddress.ip`:  
+IP used to set Kubernetes Gateway status address.
+
+`--providers.kubernetesgateway.statusaddress.service`:  
+Published Kubernetes Service to copy status addresses from.
+
+`--providers.kubernetesgateway.statusaddress.service.name`:  
+Name of the Kubernetes service.
+
+`--providers.kubernetesgateway.statusaddress.service.namespace`:  
+Namespace of the Kubernetes service.
 
 `--providers.kubernetesgateway.throttleduration`:  
 Kubernetes refresh throttle duration (Default: ```0```)
@@ -750,8 +1017,11 @@ Allow ExternalName services. (Default: ```false```)
 `--providers.kubernetesingress.certauthfilepath`:  
 Kubernetes certificate authority file path (not needed for in-cluster client).
 
+`--providers.kubernetesingress.disableclusterscoperesources`:  
+Disables the lookup of cluster scope resources (incompatible with IngressClasses and NodePortLB enabled services). (Default: ```false```)
+
 `--providers.kubernetesingress.disableingressclasslookup`:  
-Disables the lookup of IngressClasses. (Default: ```false```)
+Disables the lookup of IngressClasses (Deprecated, please use DisableClusterScopeResources). (Default: ```false```)
 
 `--providers.kubernetesingress.endpoint`:  
 Kubernetes server endpoint (required for external cluster client).
@@ -774,14 +1044,68 @@ Kubernetes Ingress label selector to use.
 `--providers.kubernetesingress.namespaces`:  
 Kubernetes namespaces.
 
+`--providers.kubernetesingress.nativelbbydefault`:  
+Defines whether to use Native Kubernetes load-balancing mode by default. (Default: ```false```)
+
+`--providers.kubernetesingress.strictprefixmatching`:  
+Make prefix matching strictly comply with the Kubernetes Ingress specification (path-element-wise matching instead of character-by-character string matching). (Default: ```false```)
+
 `--providers.kubernetesingress.throttleduration`:  
 Ingress refresh throttle duration (Default: ```0```)
 
 `--providers.kubernetesingress.token`:  
 Kubernetes bearer token (not needed for in-cluster client). It accepts either a token value or a file path to the token.
 
+`--providers.kubernetesingressnginx`:  
+Enable Kubernetes Ingress NGINX provider. (Default: ```false```)
+
+`--providers.kubernetesingressnginx.certauthfilepath`:  
+Kubernetes certificate authority file path (not needed for in-cluster client).
+
+`--providers.kubernetesingressnginx.controllerclass`:  
+Ingress Class Controller value this controller satisfies. (Default: ```k8s.io/ingress-nginx```)
+
+`--providers.kubernetesingressnginx.defaultbackendservice`:  
+Service used to serve HTTP requests not matching any known server name (catch-all). Takes the form 'namespace/name'.
+
+`--providers.kubernetesingressnginx.disablesvcexternalname`:  
+Disable support for Services of type ExternalName. (Default: ```false```)
+
+`--providers.kubernetesingressnginx.endpoint`:  
+Kubernetes server endpoint (required for external cluster client).
+
+`--providers.kubernetesingressnginx.ingressclass`:  
+Name of the ingress class this controller satisfies. (Default: ```nginx```)
+
+`--providers.kubernetesingressnginx.ingressclassbyname`:  
+Define if Ingress Controller should watch for Ingress Class by Name together with Controller Class. (Default: ```false```)
+
+`--providers.kubernetesingressnginx.publishservice`:  
+Service fronting the Ingress controller. Takes the form 'namespace/name'.
+
+`--providers.kubernetesingressnginx.publishstatusaddress`:  
+Customized address (or addresses, separated by comma) to set as the load-balancer status of Ingress objects this controller satisfies.
+
+`--providers.kubernetesingressnginx.throttleduration`:  
+Ingress refresh throttle duration. (Default: ```0```)
+
+`--providers.kubernetesingressnginx.token`:  
+Kubernetes bearer token (not needed for in-cluster client). It accepts either a token value or a file path to the token.
+
+`--providers.kubernetesingressnginx.watchingresswithoutclass`:  
+Define if Ingress Controller should also watch for Ingresses without an IngressClass or the annotation specified. (Default: ```false```)
+
+`--providers.kubernetesingressnginx.watchnamespace`:  
+Namespace the controller watches for updates to Kubernetes objects. All namespaces are watched if this parameter is left empty.
+
+`--providers.kubernetesingressnginx.watchnamespaceselector`:  
+Selector selects namespaces the controller watches for updates to Kubernetes objects.
+
 `--providers.nomad`:  
 Enable Nomad backend with default settings. (Default: ```false```)
+
+`--providers.nomad.allowemptyservices`:  
+Allow the creation of services without endpoints. (Default: ```false```)
 
 `--providers.nomad.constraints`:  
 Constraints is an expression that Traefik matches against the Nomad service's tags to determine whether to create route(s) for that service.
@@ -827,6 +1151,12 @@ Interval for polling Nomad API. (Default: ```15```)
 
 `--providers.nomad.stale`:  
 Use stale consistency for catalog reads. (Default: ```false```)
+
+`--providers.nomad.throttleduration`:  
+Watch throttle duration. (Default: ```0```)
+
+`--providers.nomad.watch`:  
+Watch Nomad Service events. (Default: ```false```)
 
 `--providers.plugin.<name>`:  
 Plugins configuration.
@@ -915,6 +1245,9 @@ Client timeout for HTTP connections. (Default: ```0```)
 `--providers.swarm.network`:  
 Default Docker network used.
 
+`--providers.swarm.password`:  
+Password for Basic HTTP authentication.
+
 `--providers.swarm.refreshseconds`:  
 Polling interval for swarm mode. (Default: ```15```)
 
@@ -932,6 +1265,9 @@ TLS key
 
 `--providers.swarm.usebindportip`:  
 Use the ip address from the bound port, rather than from the inner network. (Default: ```false```)
+
+`--providers.swarm.username`:  
+Username for Basic HTTP authentication.
 
 `--providers.swarm.watch`:  
 Watch Docker events. (Default: ```true```)
@@ -1009,16 +1345,25 @@ Defines the allowed SPIFFE IDs (takes precedence over the SPIFFE TrustDomain).
 Defines the allowed SPIFFE trust domain.
 
 `--tracing`:  
-OpenTracing configuration. (Default: ```false```)
+Tracing configuration. (Default: ```false```)
 
 `--tracing.addinternals`:  
 Enables tracing for internal services (ping, dashboard, etc...). (Default: ```false```)
 
+`--tracing.capturedrequestheaders`:  
+Request headers to add as attributes for server and client spans.
+
+`--tracing.capturedresponseheaders`:  
+Response headers to add as attributes for server and client spans.
+
 `--tracing.globalattributes.<name>`:  
-Defines additional attributes (key:value) on all spans.
+(Deprecated) Defines additional resource attributes (key:value).
 
 `--tracing.otlp`:  
 Settings for OpenTelemetry. (Default: ```false```)
+
+`--tracing.otlp.grpc`:  
+gRPC configuration for the OpenTelemetry collector. (Default: ```false```)
 
 `--tracing.otlp.grpc.endpoint`:  
 Sets the gRPC endpoint (host:port) of the collector. (Default: ```localhost:4317```)
@@ -1041,6 +1386,9 @@ TLS insecure skip verify (Default: ```false```)
 `--tracing.otlp.grpc.tls.key`:  
 TLS key
 
+`--tracing.otlp.http`:  
+HTTP configuration for the OpenTelemetry collector. (Default: ```false```)
+
 `--tracing.otlp.http.endpoint`:  
 Sets the HTTP endpoint (scheme://host:port/path) of the collector. (Default: ```https://localhost:4318```)
 
@@ -1059,8 +1407,14 @@ TLS insecure skip verify (Default: ```false```)
 `--tracing.otlp.http.tls.key`:  
 TLS key
 
+`--tracing.resourceattributes.<name>`:  
+Defines additional resource attributes (key:value).
+
+`--tracing.safequeryparams`:  
+Query params to not redact.
+
 `--tracing.samplerate`:  
 Sets the rate between 0.0 and 1.0 of requests to trace. (Default: ```1.000000```)
 
 `--tracing.servicename`:  
-Set the name for this service. (Default: ```traefik```)
+Defines the service name resource attribute. (Default: ```traefik```)

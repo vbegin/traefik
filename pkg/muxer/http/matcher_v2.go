@@ -11,7 +11,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/middlewares/requestdecorator"
 )
 
-var httpFuncsV2 = map[string]func(*matchersTree, ...string) error{
+var httpFuncsV2 = matcherBuilderFuncs{
 	"Host":          hostV2,
 	"HostHeader":    hostV2,
 	"HostRegexp":    hostRegexpV2,
@@ -25,15 +25,21 @@ var httpFuncsV2 = map[string]func(*matchersTree, ...string) error{
 }
 
 func pathV2(tree *matchersTree, paths ...string) error {
+	var routes []*mux.Route
+
 	for _, path := range paths {
-		if !strings.HasPrefix(path, "/") {
-			return fmt.Errorf("path %q does not start with a '/'", path)
+		route := mux.NewRouter().UseRoutingPath().NewRoute()
+
+		if err := route.Path(path).GetError(); err != nil {
+			return err
 		}
+
+		routes = append(routes, route)
 	}
 
 	tree.matcher = func(req *http.Request) bool {
-		for _, path := range paths {
-			if req.URL.Path == path {
+		for _, route := range routes {
+			if route.Match(req, &mux.RouteMatch{}) {
 				return true
 			}
 		}
@@ -45,15 +51,21 @@ func pathV2(tree *matchersTree, paths ...string) error {
 }
 
 func pathPrefixV2(tree *matchersTree, paths ...string) error {
+	var routes []*mux.Route
+
 	for _, path := range paths {
-		if !strings.HasPrefix(path, "/") {
-			return fmt.Errorf("path %q does not start with a '/'", path)
+		route := mux.NewRouter().UseRoutingPath().NewRoute()
+
+		if err := route.PathPrefix(path).GetError(); err != nil {
+			return err
 		}
+
+		routes = append(routes, route)
 	}
 
 	tree.matcher = func(req *http.Request) bool {
-		for _, path := range paths {
-			if strings.HasPrefix(req.URL.Path, path) {
+		for _, route := range routes {
+			if route.Match(req, &mux.RouteMatch{}) {
 				return true
 			}
 		}

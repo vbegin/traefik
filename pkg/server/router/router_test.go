@@ -1,23 +1,27 @@
 package router
 
 import (
-	"context"
+	"crypto/tls"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/middlewares/requestdecorator"
+	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	"github.com/traefik/traefik/v3/pkg/server/middleware"
 	"github.com/traefik/traefik/v3/pkg/server/service"
 	"github.com/traefik/traefik/v3/pkg/testhelpers"
-	"github.com/traefik/traefik/v3/pkg/tls"
+	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 )
 
 func TestRouterManager_Get(t *testing.T) {
@@ -50,6 +54,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -73,6 +78,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -111,6 +117,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -135,6 +142,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -176,6 +184,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -216,6 +225,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service@provider-1": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -239,6 +249,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service@provider-2": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -263,6 +274,7 @@ func TestRouterManager_Get(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service@provider-1": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: server.URL,
@@ -297,7 +309,6 @@ func TestRouterManager_Get(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -309,15 +320,19 @@ func TestRouterManager_Get(t *testing.T) {
 				},
 			})
 
-			roundTripperManager := service.NewRoundTripperManager(nil)
-			roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-			serviceManager := service.NewManager(rtConf.Services, nil, nil, roundTripperManager)
+			transportManager := service.NewTransportManager(nil)
+			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, proxyBuilderMock{})
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
-			tlsManager := tls.NewManager()
+			tlsManager := traefiktls.NewManager(nil)
 
-			routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager)
+			parser, err := httpmuxer.NewSyntaxParser()
+			require.NoError(t, err)
 
-			handlers := routerManager.BuildHandlers(context.Background(), test.entryPoints, false)
+			routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager, parser)
+
+			handlers := routerManager.BuildHandlers(t.Context(), test.entryPoints, false)
 
 			w := httptest.NewRecorder()
 			req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
@@ -340,7 +355,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 		serviceConfig    map[string]*dynamic.Service
 		routerConfig     map[string]*dynamic.Router
 		middlewareConfig map[string]*dynamic.Middleware
-		tlsOptions       map[string]tls.Options
+		tlsOptions       map[string]traefiktls.Options
 		expectedError    int
 	}{
 		{
@@ -348,6 +363,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1:8085",
@@ -382,6 +398,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -409,6 +426,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -436,6 +454,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -479,6 +498,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -519,6 +539,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -549,6 +570,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -575,10 +597,38 @@ func TestRuntimeConfiguration(t *testing.T) {
 			expectedError: 2,
 		},
 		{
+			desc: "Router priority exceeding max user-defined priority",
+			serviceConfig: map[string]*dynamic.Service{
+				"foo-service": {
+					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
+						Servers: []dynamic.Server{
+							{
+								URL: "http://127.0.0.1",
+							},
+						},
+					},
+				},
+			},
+			middlewareConfig: map[string]*dynamic.Middleware{},
+			routerConfig: map[string]*dynamic.Router{
+				"bar": {
+					EntryPoints: []string{"web"},
+					Service:     "foo-service",
+					Rule:        "Host(`foo.bar`)",
+					Priority:    math.MaxInt,
+					TLS:         &dynamic.RouterTLSConfig{},
+				},
+			},
+			tlsOptions:    map[string]traefiktls.Options{},
+			expectedError: 1,
+		},
+		{
 			desc: "Router with broken tlsOption",
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -598,9 +648,9 @@ func TestRuntimeConfiguration(t *testing.T) {
 					},
 				},
 			},
-			tlsOptions: map[string]tls.Options{
+			tlsOptions: map[string]traefiktls.Options{
 				"broken-tlsOption": {
-					ClientAuth: tls.ClientAuth{
+					ClientAuth: traefiktls.ClientAuth{
 						ClientAuthType: "foobar",
 					},
 				},
@@ -612,6 +662,7 @@ func TestRuntimeConfiguration(t *testing.T) {
 			serviceConfig: map[string]*dynamic.Service{
 				"foo-service": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
+						Strategy: dynamic.BalancerStrategyWRR,
 						Servers: []dynamic.Server{
 							{
 								URL: "http://127.0.0.1",
@@ -629,9 +680,9 @@ func TestRuntimeConfiguration(t *testing.T) {
 					TLS:         &dynamic.RouterTLSConfig{},
 				},
 			},
-			tlsOptions: map[string]tls.Options{
+			tlsOptions: map[string]traefiktls.Options{
 				"default": {
-					ClientAuth: tls.ClientAuth{
+					ClientAuth: traefiktls.ClientAuth{
 						ClientAuthType: "foobar",
 					},
 				},
@@ -640,7 +691,6 @@ func TestRuntimeConfiguration(t *testing.T) {
 		},
 	}
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -657,17 +707,21 @@ func TestRuntimeConfiguration(t *testing.T) {
 				},
 			})
 
-			roundTripperManager := service.NewRoundTripperManager(nil)
-			roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-			serviceManager := service.NewManager(rtConf.Services, nil, nil, roundTripperManager)
+			transportManager := service.NewTransportManager(nil)
+			transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
+
+			serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, proxyBuilderMock{})
 			middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
-			tlsManager := tls.NewManager()
-			tlsManager.UpdateConfigs(context.Background(), nil, test.tlsOptions, nil)
+			tlsManager := traefiktls.NewManager(nil)
+			tlsManager.UpdateConfigs(t.Context(), nil, test.tlsOptions, nil)
 
-			routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager)
+			parser, err := httpmuxer.NewSyntaxParser()
+			require.NoError(t, err)
 
-			_ = routerManager.BuildHandlers(context.Background(), entryPoints, false)
-			_ = routerManager.BuildHandlers(context.Background(), entryPoints, true)
+			routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager, parser)
+
+			_ = routerManager.BuildHandlers(t.Context(), entryPoints, false)
+			_ = routerManager.BuildHandlers(t.Context(), entryPoints, true)
 
 			// even though rtConf was passed by argument to the manager builders above,
 			// it's ok to use it as the result we check, because everything worth checking
@@ -701,7 +755,8 @@ func TestProviderOnMiddlewares(t *testing.T) {
 			Services: map[string]*dynamic.Service{
 				"test@file": {
 					LoadBalancer: &dynamic.ServersLoadBalancer{
-						Servers: []dynamic.Server{},
+						Strategy: dynamic.BalancerStrategyWRR,
+						Servers:  []dynamic.Server{},
 					},
 				},
 			},
@@ -734,15 +789,19 @@ func TestProviderOnMiddlewares(t *testing.T) {
 		},
 	})
 
-	roundTripperManager := service.NewRoundTripperManager(nil)
-	roundTripperManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, roundTripperManager)
+	transportManager := service.NewTransportManager(nil)
+	transportManager.Update(map[string]*dynamic.ServersTransport{"default@internal": {}})
+
+	serviceManager := service.NewManager(rtConf.Services, nil, nil, transportManager, nil)
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
-	tlsManager := tls.NewManager()
+	tlsManager := traefiktls.NewManager(nil)
 
-	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager)
+	parser, err := httpmuxer.NewSyntaxParser()
+	require.NoError(t, err)
 
-	_ = routerManager.BuildHandlers(context.Background(), entryPoints, false)
+	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager, parser)
+
+	_ = routerManager.BuildHandlers(t.Context(), entryPoints, false)
 
 	assert.Equal(t, []string{"chain@file", "m1@file"}, rtConf.Routers["router@file"].Middlewares)
 	assert.Equal(t, []string{"m1@file", "m2@file", "m1@file"}, rtConf.Middlewares["chain@file"].Chain.Middlewares)
@@ -750,12 +809,20 @@ func TestProviderOnMiddlewares(t *testing.T) {
 	assert.Equal(t, []string{"m1@docker", "m2@docker", "m1@file"}, rtConf.Middlewares["chain@docker"].Chain.Middlewares)
 }
 
-type staticRoundTripperGetter struct {
+type staticTransportManager struct {
 	res *http.Response
 }
 
-func (s staticRoundTripperGetter) Get(name string) (http.RoundTripper, error) {
+func (s staticTransportManager) GetRoundTripper(_ string) (http.RoundTripper, error) {
 	return &staticTransport{res: s.res}, nil
+}
+
+func (s staticTransportManager) GetTLSConfig(_ string) (*tls.Config, error) {
+	panic("implement me")
+}
+
+func (s staticTransportManager) Get(_ string) (*dynamic.ServersTransport, error) {
+	panic("implement me")
 }
 
 type staticTransport struct {
@@ -804,20 +871,23 @@ func BenchmarkRouterServe(b *testing.B) {
 		},
 	})
 
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
+	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticTransportManager{res}, nil)
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, nil)
-	tlsManager := tls.NewManager()
+	tlsManager := traefiktls.NewManager(nil)
 
-	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager)
+	parser, err := httpmuxer.NewSyntaxParser()
+	require.NoError(b, err)
 
-	handlers := routerManager.BuildHandlers(context.Background(), entryPoints, false)
+	routerManager := NewManager(rtConf, serviceManager, middlewaresBuilder, nil, tlsManager, parser)
+
+	handlers := routerManager.BuildHandlers(b.Context(), entryPoints, false)
 
 	w := httptest.NewRecorder()
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
 
 	reqHost := requestdecorator.New(nil)
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		reqHost.ServeHTTP(w, req, handlers["web"].ServeHTTP)
 	}
 }
@@ -833,7 +903,7 @@ func BenchmarkService(b *testing.B) {
 			LoadBalancer: &dynamic.ServersLoadBalancer{
 				Servers: []dynamic.Server{
 					{
-						URL: "tchouck",
+						URL: "tchouk",
 					},
 				},
 			},
@@ -846,13 +916,23 @@ func BenchmarkService(b *testing.B) {
 		},
 	})
 
-	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticRoundTripperGetter{res})
+	serviceManager := service.NewManager(rtConf.Services, nil, nil, staticTransportManager{res}, nil)
 	w := httptest.NewRecorder()
 	req := testhelpers.MustNewRequest(http.MethodGet, "http://foo.bar/", nil)
 
-	handler, _ := serviceManager.BuildHTTP(context.Background(), "foo-service")
+	handler, _ := serviceManager.BuildHTTP(b.Context(), "foo-service")
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		handler.ServeHTTP(w, req)
 	}
+}
+
+type proxyBuilderMock struct{}
+
+func (p proxyBuilderMock) Build(_ string, _ *url.URL, _, _ bool, _ time.Duration) (http.Handler, error) {
+	return http.HandlerFunc(func(responseWriter http.ResponseWriter, req *http.Request) {}), nil
+}
+
+func (p proxyBuilderMock) Update(_ map[string]*dynamic.ServersTransport) {
+	panic("implement me")
 }

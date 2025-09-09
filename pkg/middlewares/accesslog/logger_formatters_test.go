@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommonLogFormatter_Format(t *testing.T) {
@@ -82,11 +83,11 @@ func TestCommonLogFormatter_Format(t *testing.T) {
 		},
 	}
 
-	// Set timezone to Etc/GMT+9 to have a constant behavior
-	t.Setenv("TZ", "Etc/GMT+9")
+	var err error
+	time.Local, err = time.LoadLocation("Etc/GMT+9")
+	require.NoError(t, err)
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -150,7 +151,6 @@ func Test_toLog(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 

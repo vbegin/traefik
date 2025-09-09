@@ -7,8 +7,7 @@ import (
 
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
-	"github.com/traefik/traefik/v3/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 )
 
 const (
@@ -35,8 +34,8 @@ func New(ctx context.Context, next http.Handler, config dynamic.ReplacePath, nam
 	}, nil
 }
 
-func (r *replacePath) GetTracingInformation() (string, string, trace.SpanKind) {
-	return r.name, typeName, trace.SpanKindInternal
+func (r *replacePath) GetTracingInformation() (string, string) {
+	return r.name, typeName
 }
 
 func (r *replacePath) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -51,8 +50,8 @@ func (r *replacePath) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	var err error
 	req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
 	if err != nil {
-		middlewares.GetLogger(context.Background(), r.name, typeName).Error().Err(err).Send()
-		tracing.SetStatusErrorf(req.Context(), err.Error())
+		middlewares.GetLogger(context.Background(), r.name, typeName).Error().Msgf("Unable to unescape url raw path %q: %v", req.URL.RawPath, err)
+		observability.SetStatusErrorf(req.Context(), "Unable to unescape url raw path %q: %v", req.URL.RawPath, err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}

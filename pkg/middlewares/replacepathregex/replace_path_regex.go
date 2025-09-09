@@ -10,9 +10,8 @@ import (
 
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
+	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 	"github.com/traefik/traefik/v3/pkg/middlewares/replacepath"
-	"github.com/traefik/traefik/v3/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
 )
 
 const typeName = "ReplacePathRegex"
@@ -42,8 +41,8 @@ func New(ctx context.Context, next http.Handler, config dynamic.ReplacePathRegex
 	}, nil
 }
 
-func (rp *replacePathRegex) GetTracingInformation() (string, string, trace.SpanKind) {
-	return rp.name, typeName, trace.SpanKindInternal
+func (rp *replacePathRegex) GetTracingInformation() (string, string) {
+	return rp.name, typeName
 }
 
 func (rp *replacePathRegex) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -52,7 +51,7 @@ func (rp *replacePathRegex) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		currentPath = req.URL.EscapedPath()
 	}
 
-	if rp.regexp != nil && len(rp.replacement) > 0 && rp.regexp.MatchString(currentPath) {
+	if rp.regexp != nil && rp.regexp.MatchString(currentPath) {
 		req.Header.Add(replacepath.ReplacedPathHeader, currentPath)
 		req.URL.RawPath = rp.regexp.ReplaceAllString(currentPath, rp.replacement)
 
@@ -62,8 +61,8 @@ func (rp *replacePathRegex) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		var err error
 		req.URL.Path, err = url.PathUnescape(req.URL.RawPath)
 		if err != nil {
-			middlewares.GetLogger(context.Background(), rp.name, typeName).Error().Err(err).Send()
-			tracing.SetStatusErrorf(req.Context(), err.Error())
+			middlewares.GetLogger(context.Background(), rp.name, typeName).Error().Msgf("Unable to unescape url raw path %q: %v", req.URL.RawPath, err)
+			observability.SetStatusErrorf(req.Context(), "Unable to unescape url raw path %q: %v", req.URL.RawPath, err)
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -10,8 +10,7 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/ip"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
-	"github.com/traefik/traefik/v3/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 )
 
 const (
@@ -55,8 +54,8 @@ func New(ctx context.Context, next http.Handler, config dynamic.IPWhiteList, nam
 	}, nil
 }
 
-func (wl *ipWhiteLister) GetTracingInformation() (string, string, trace.SpanKind) {
-	return wl.name, typeName, trace.SpanKindInternal
+func (wl *ipWhiteLister) GetTracingInformation() (string, string) {
+	return wl.name, typeName
 }
 
 func (wl *ipWhiteLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -66,9 +65,8 @@ func (wl *ipWhiteLister) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	clientIP := wl.strategy.GetIP(req)
 	err := wl.whiteLister.IsAuthorized(clientIP)
 	if err != nil {
-		msg := fmt.Sprintf("Rejecting IP %s: %v", clientIP, err)
-		logger.Debug().Msg(msg)
-		tracing.SetStatusErrorf(req.Context(), msg)
+		logger.Debug().Msgf("Rejecting IP %s: %v", clientIP, err)
+		observability.SetStatusErrorf(req.Context(), "Rejecting IP %s: %v", clientIP, err)
 		reject(ctx, rw)
 		return
 	}

@@ -69,13 +69,14 @@ func TestClientIPV2Matcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -146,13 +147,14 @@ func TestMethodV2Matcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -271,13 +273,14 @@ func TestHostV2Matcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -374,13 +377,14 @@ func TestHostRegexpV2Matcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -454,16 +458,29 @@ func TestPathV2Matcher(t *testing.T) {
 				"https://example.com/css/main.css": http.StatusNotFound,
 			},
 		},
+		{
+			desc: "valid Path matcher with regexp",
+			rule: "Path(`/css{path:(/.*)?}`)",
+			expected: map[string]int{
+				"https://example.com":                              http.StatusNotFound,
+				"https://example.com/css/main.css":                 http.StatusOK,
+				"https://example.org/css/main.css":                 http.StatusOK,
+				"https://example.com/css/components/component.css": http.StatusOK,
+				"https://example.com/css.css":                      http.StatusNotFound,
+				"https://example.com/js/main.js":                   http.StatusNotFound,
+			},
+		},
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -535,16 +552,29 @@ func TestPathPrefixV2Matcher(t *testing.T) {
 				"https://example.com/css/main.css": http.StatusOK,
 			},
 		},
+		{
+			desc: "valid PathPrefix matcher with regexp",
+			rule: "PathPrefix(`/css-{name:[0-9]?}`)",
+			expected: map[string]int{
+				"https://example.com":                                     http.StatusNotFound,
+				"https://example.com/css-1/main.css":                      http.StatusOK,
+				"https://example.org/css-222/main.css":                    http.StatusOK,
+				"https://example.com/css-333333/components/component.css": http.StatusOK,
+				"https://example.com/css.css":                             http.StatusNotFound,
+				"https://example.com/js/main.js":                          http.StatusNotFound,
+			},
+		},
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -625,14 +655,14 @@ func TestHeadersMatcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -734,13 +764,14 @@ func TestHeaderRegexpV2Matcher(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {
@@ -827,13 +858,14 @@ func TestHostRegexp(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.hostExp, "v2", 0, handler)
 			require.NoError(t, err)
@@ -1495,14 +1527,14 @@ func Test_addRoute(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			muxer, err := NewMuxer()
+			parser, err := NewSyntaxParser()
 			require.NoError(t, err)
+
+			muxer := NewMuxer(parser)
 
 			err = muxer.AddRoute(test.rule, "v2", 0, handler)
 			if test.expectedError {

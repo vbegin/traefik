@@ -1,21 +1,19 @@
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 
-TAG_NAME := $(shell git tag -l --contains HEAD)
+TAG_NAME := $(shell git describe --abbrev=0 --tags --exact-match)
 SHA := $(shell git rev-parse HEAD)
 VERSION_GIT := $(if $(TAG_NAME),$(TAG_NAME),$(SHA))
 VERSION := $(if $(VERSION),$(VERSION),$(VERSION_GIT))
 
-GIT_BRANCH := $(subst heads/,,$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
-
-REPONAME := $(shell echo $(REPO) | tr '[:upper:]' '[:lower:]')
 BIN_NAME := traefik
-CODENAME := cheddar
+CODENAME ?= cheddar
 
 DATE := $(shell date -u '+%Y-%m-%d_%I:%M:%S%p')
 
 # Default build target
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
+GOGC ?=
 
 LINT_EXECUTABLES = misspell shellcheck
 
@@ -32,18 +30,16 @@ dist:
 .PHONY: build-webui-image
 #? build-webui-image: Build WebUI Docker image
 build-webui-image:
-	docker build -t traefik-webui -f webui/Dockerfile webui
+	docker build -t traefik-webui -f webui/buildx.Dockerfile webui
 
 .PHONY: clean-webui
 #? clean-webui: Clean WebUI static generated assets
 clean-webui:
-	rm -r webui/static
-	mkdir -p webui/static
-	printf 'For more information see `webui/readme.md`' > webui/static/DONT-EDIT-FILES-IN-THIS-DIRECTORY.md
+	rm -rf webui/static
 
 webui/static/index.html:
 	$(MAKE) build-webui-image
-	docker run --rm -v "$(PWD)/webui/static":'/src/webui/static' traefik-webui npm run build:nc
+	docker run --rm -v "$(PWD)/webui/static":'/src/webui/static' traefik-webui yarn build:prod
 	docker run --rm -v "$(PWD)/webui/static":'/src/webui/static' traefik-webui chown -R $(shell id -u):$(shell id -g) ./static
 
 .PHONY: generate-webui
@@ -59,7 +55,7 @@ generate:
 #? binary: Build the binary
 binary: generate-webui dist
 	@echo SHA: $(VERSION) $(CODENAME) $(DATE)
-	CGO_ENABLED=0 GOGC=off GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS[*]} -ldflags "-s -w \
+	CGO_ENABLED=0 GOGC=${GOGC} GOOS=${GOOS} GOARCH=${GOARCH} go build ${FLAGS[*]} -ldflags "-s -w \
     -X github.com/traefik/traefik/v3/pkg/version.Version=$(VERSION) \
     -X github.com/traefik/traefik/v3/pkg/version.Codename=$(CODENAME) \
     -X github.com/traefik/traefik/v3/pkg/version.BuildDate=$(DATE)" \
@@ -88,7 +84,7 @@ crossbinary-default: generate generate-webui
 
 .PHONY: test
 #? test: Run the unit and integration tests
-test: test-unit test-integration
+test: test-ui-unit test-unit test-integration
 
 .PHONY: test-unit
 #? test-unit: Run the unit tests
@@ -97,20 +93,21 @@ test-unit:
 
 .PHONY: test-integration
 #? test-integration: Run the integration tests
-test-integration: binary
+test-integration:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -test.timeout=20m -failfast -v $(TESTFLAGS)
 
 .PHONY: test-gateway-api-conformance
 #? test-gateway-api-conformance: Run the conformance tests
-test-gateway-api-conformance: binary
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -v -test.run K8sConformanceSuite -k8sConformance=true $(TESTFLAGS)
+test-gateway-api-conformance: build-image-dirty
+	# In case of a new Minor/Major version, the k8sConformanceTraefikVersion needs to be updated.
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -v -test.run K8sConformanceSuite -k8sConformance -k8sConformanceTraefikVersion="v3.5" $(TESTFLAGS)
 
-## TODO: Need to be fixed to work in all situations.
-.PHONY: test-gateway-api-conformance-ci
-#? test-gateway-api-conformance-ci: Run the conformance tests
-test-gateway-api-conformance-ci:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go test ./integration -v -test.run K8sConformanceSuite -k8sConformance=true $(TESTFLAGS)
-
+.PHONY: test-ui-unit
+#? test-ui-unit: Run the unit tests for the webui
+test-ui-unit:
+	$(MAKE) build-webui-image
+	docker run --rm -v "$(PWD)/webui/static":'/src/webui/static' traefik-webui yarn --cwd webui install
+	docker run --rm -v "$(PWD)/webui/static":'/src/webui/static' traefik-webui yarn --cwd webui test:unit:ci
 
 .PHONY: pull-images
 #? pull-images: Pull all Docker images to avoid timeout during integration tests
@@ -128,20 +125,16 @@ lint:
 
 .PHONY: validate-files
 #? validate-files: Validate code and docs
-validate-files: lint
+validate-files:
 	$(foreach exec,$(LINT_EXECUTABLES),\
             $(if $(shell which $(exec)),,$(error "No $(exec) in PATH")))
+	$(CURDIR)/script/validate-vendor.sh
 	$(CURDIR)/script/validate-misspell.sh
 	$(CURDIR)/script/validate-shell-script.sh
 
 .PHONY: validate
 #? validate: Validate code, docs, and vendor
-validate: lint
-	$(foreach exec,$(EXECUTABLES),\
-            $(if $(shell which $(exec)),,$(error "No $(exec) in PATH")))
-	$(CURDIR)/script/validate-vendor.sh
-	$(CURDIR)/script/validate-misspell.sh
-	$(CURDIR)/script/validate-shell-script.sh
+validate: lint validate-files
 
 # Target for building images for multiple architectures.
 .PHONY: multi-arch-image-%
@@ -181,7 +174,7 @@ docs-pull-images:
 .PHONY: generate-crd
 #? generate-crd: Generate CRD clientset and CRD manifests
 generate-crd:
-	@$(CURDIR)/script/code-gen-docker.sh
+	@$(CURDIR)/script/code-gen.sh
 
 .PHONY: generate-genconf
 #? generate-genconf: Generate code from dynamic configuration github.com/traefik/genconf

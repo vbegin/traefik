@@ -12,6 +12,12 @@
       "rule": "Host(`kv1.localhost`)",
       "priority": 42,
       "tls": {},
+      "observability": {
+        "accessLogs": true,
+        "metrics": true,
+        "tracing": true,
+        "traceVerbosity": "minimal"
+      },
       "status": "enabled",
       "using": [
         "web"
@@ -42,6 +48,12 @@
           }
         ]
       },
+      "observability": {
+        "accessLogs": true,
+        "metrics": true,
+        "tracing": true,
+        "traceVerbosity": "minimal"
+      },
       "status": "enabled",
       "using": [
         "web"
@@ -53,7 +65,14 @@
       ],
       "service": "api@internal",
       "rule": "PathPrefix(`/api`)",
-      "priority": 2147483646,
+      "ruleSyntax": "default",
+      "priority": 9223372036854775806,
+      "observability": {
+        "accessLogs": true,
+        "metrics": true,
+        "tracing": true,
+        "traceVerbosity": "minimal"
+      },
       "status": "enabled",
       "using": [
         "traefik"
@@ -69,7 +88,14 @@
       ],
       "service": "dashboard@internal",
       "rule": "PathPrefix(`/`)",
-      "priority": 2147483645,
+      "ruleSyntax": "default",
+      "priority": 9223372036854775805,
+      "observability": {
+        "accessLogs": true,
+        "metrics": true,
+        "tracing": true,
+        "traceVerbosity": "minimal"
+      },
       "status": "enabled",
       "using": [
         "traefik"
@@ -78,7 +104,13 @@
   },
   "middlewares": {
     "compressor@consul": {
-      "compress": {},
+      "compress": {
+        "encodings": [
+          "gzip",
+          "br",
+          "zstd"
+        ]
+      },
       "status": "enabled",
       "usedBy": [
         "Router0@consul"
@@ -151,6 +183,7 @@
     "mirror@consul": {
       "mirroring": {
         "service": "simplesvc",
+        "mirrorBody": true,
         "maxBodySize": -1,
         "mirrors": [
           {
@@ -178,6 +211,7 @@
             "url": "http://10.0.1.1:8889"
           }
         ],
+        "strategy": "wrr",
         "passHostHeader": true,
         "responseForwarding": {
           "flushInterval": "100ms"
@@ -203,6 +237,7 @@
             "url": "http://10.0.1.2:8889"
           }
         ],
+        "strategy": "wrr",
         "passHostHeader": true,
         "responseForwarding": {
           "flushInterval": "100ms"
@@ -220,6 +255,7 @@
             "url": "http://10.0.1.3:8889"
           }
         ],
+        "strategy": "wrr",
         "passHostHeader": true,
         "responseForwarding": {
           "flushInterval": "100ms"

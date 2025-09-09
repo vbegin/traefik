@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,10 +15,9 @@ import (
 	"github.com/traefik/traefik/v3/pkg/metrics"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
 	"github.com/traefik/traefik/v3/pkg/middlewares/capture"
+	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
 	"github.com/traefik/traefik/v3/pkg/middlewares/retry"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
-	"github.com/traefik/traefik/v3/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 )
 
@@ -92,32 +92,49 @@ func NewServiceMiddleware(ctx context.Context, next http.Handler, registry metri
 	}
 }
 
-// WrapEntryPointHandler Wraps metrics entrypoint to alice.Constructor.
-func WrapEntryPointHandler(ctx context.Context, registry metrics.Registry, entryPointName string) alice.Constructor {
+// EntryPointMetricsHandler returns the metrics entrypoint handler.
+func EntryPointMetricsHandler(ctx context.Context, registry metrics.Registry, entryPointName string) alice.Constructor {
 	return func(next http.Handler) (http.Handler, error) {
+		if registry == nil || !registry.IsEpEnabled() {
+			return next, nil
+		}
+
 		return NewEntryPointMiddleware(ctx, next, registry, entryPointName), nil
 	}
 }
 
-// WrapRouterHandler Wraps metrics router to alice.Constructor.
-func WrapRouterHandler(ctx context.Context, registry metrics.Registry, routerName string, serviceName string) alice.Constructor {
+// RouterMetricsHandler returns the metrics router handler.
+func RouterMetricsHandler(ctx context.Context, registry metrics.Registry, routerName string, serviceName string) alice.Constructor {
 	return func(next http.Handler) (http.Handler, error) {
+		if registry == nil || !registry.IsRouterEnabled() {
+			return next, nil
+		}
+
 		return NewRouterMiddleware(ctx, next, registry, routerName, serviceName), nil
 	}
 }
 
-// WrapServiceHandler Wraps metrics service to alice.Constructor.
-func WrapServiceHandler(ctx context.Context, registry metrics.Registry, serviceName string) alice.Constructor {
+// ServiceMetricsHandler returns the metrics service handler.
+func ServiceMetricsHandler(ctx context.Context, registry metrics.Registry, serviceName string) alice.Constructor {
 	return func(next http.Handler) (http.Handler, error) {
+		if registry == nil || !registry.IsSvcEnabled() {
+			return next, nil
+		}
+
 		return NewServiceMiddleware(ctx, next, registry, serviceName), nil
 	}
 }
 
-func (m *metricsMiddleware) GetTracingInformation() (string, string, trace.SpanKind) {
-	return m.name, typeName, trace.SpanKindInternal
+func (m *metricsMiddleware) GetTracingInformation() (string, string) {
+	return m.name, typeName
 }
 
 func (m *metricsMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if !observability.MetricsEnabled(req.Context()) {
+		m.next.ServeHTTP(rw, req)
+		return
+	}
+
 	proto := getRequestProtocol(req)
 
 	var labels []string
@@ -144,7 +161,7 @@ func (m *metricsMiddleware) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 		}
 		logger := with.Logger()
 		logger.Error().Err(err).Msg("Could not get Capture")
-		tracing.SetStatusErrorf(req.Context(), "Could not get Capture")
+		observability.SetStatusErrorf(req.Context(), "Could not get Capture")
 		return
 	}
 
@@ -216,12 +233,10 @@ func grpcStatusCode(rw http.ResponseWriter) int {
 
 func containsHeader(req *http.Request, name, value string) bool {
 	items := strings.Split(req.Header.Get(name), ",")
-	for _, item := range items {
-		if value == strings.ToLower(strings.TrimSpace(item)) {
-			return true
-		}
-	}
-	return false
+
+	return slices.ContainsFunc(items, func(item string) bool {
+		return value == strings.ToLower(strings.TrimSpace(item))
+	})
 }
 
 // getMethod returns the request's method.

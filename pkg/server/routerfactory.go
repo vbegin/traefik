@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/runtime"
 	"github.com/traefik/traefik/v3/pkg/config/static"
+	httpmuxer "github.com/traefik/traefik/v3/pkg/muxer/http"
 	"github.com/traefik/traefik/v3/pkg/server/middleware"
 	tcpmiddleware "github.com/traefik/traefik/v3/pkg/server/middleware/tcp"
 	"github.com/traefik/traefik/v3/pkg/server/router"
@@ -21,8 +23,9 @@ import (
 
 // RouterFactory the factory of TCP/UDP routers.
 type RouterFactory struct {
-	entryPointsTCP []string
-	entryPointsUDP []string
+	entryPointsTCP  []string
+	entryPointsUDP  []string
+	allowACMEByPass map[string]bool
 
 	managerFactory *service.ManagerFactory
 
@@ -34,15 +37,28 @@ type RouterFactory struct {
 	dialerManager *tcp.DialerManager
 
 	cancelPrevState func()
+
+	parser httpmuxer.SyntaxParser
 }
 
 // NewRouterFactory creates a new RouterFactory.
 func NewRouterFactory(staticConfiguration static.Configuration, managerFactory *service.ManagerFactory, tlsManager *tls.Manager,
 	observabilityMgr *middleware.ObservabilityMgr, pluginBuilder middleware.PluginsBuilder, dialerManager *tcp.DialerManager,
-) *RouterFactory {
+) (*RouterFactory, error) {
+	handlesTLSChallenge := false
+	for _, resolver := range staticConfiguration.CertificatesResolvers {
+		if resolver.ACME != nil && resolver.ACME.TLSChallenge != nil {
+			handlesTLSChallenge = true
+			break
+		}
+	}
+
+	allowACMEByPass := map[string]bool{}
 	var entryPointsTCP, entryPointsUDP []string
-	for name, cfg := range staticConfiguration.EntryPoints {
-		protocol, err := cfg.GetProtocol()
+	for name, ep := range staticConfiguration.EntryPoints {
+		allowACMEByPass[name] = ep.AllowACMEByPass || !handlesTLSChallenge
+
+		protocol, err := ep.GetProtocol()
 		if err != nil {
 			// Should never happen because Traefik should not start if protocol is invalid.
 			log.Error().Err(err).Msg("Invalid protocol")
@@ -55,6 +71,11 @@ func NewRouterFactory(staticConfiguration static.Configuration, managerFactory *
 		}
 	}
 
+	parser, err := httpmuxer.NewSyntaxParser()
+	if err != nil {
+		return nil, fmt.Errorf("creating parser: %w", err)
+	}
+
 	return &RouterFactory{
 		entryPointsTCP:   entryPointsTCP,
 		entryPointsUDP:   entryPointsUDP,
@@ -63,7 +84,9 @@ func NewRouterFactory(staticConfiguration static.Configuration, managerFactory *
 		tlsManager:       tlsManager,
 		pluginBuilder:    pluginBuilder,
 		dialerManager:    dialerManager,
-	}
+		allowACMEByPass:  allowACMEByPass,
+		parser:           parser,
+	}, nil
 }
 
 // CreateRouters creates new TCPRouters and UDPRouters.
@@ -80,7 +103,7 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, f.pluginBuilder)
 
-	routerManager := router.NewManager(rtConf, serviceManager, middlewaresBuilder, f.observabilityMgr, f.tlsManager)
+	routerManager := router.NewManager(rtConf, serviceManager, middlewaresBuilder, f.observabilityMgr, f.tlsManager, f.parser)
 
 	handlersNonTLS := routerManager.BuildHandlers(ctx, f.entryPointsTCP, false)
 	handlersTLS := routerManager.BuildHandlers(ctx, f.entryPointsTCP, true)
@@ -94,6 +117,12 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 
 	rtTCPManager := tcprouter.NewManager(rtConf, svcTCPManager, middlewaresTCPBuilder, handlersNonTLS, handlersTLS, f.tlsManager)
 	routersTCP := rtTCPManager.BuildHandlers(ctx, f.entryPointsTCP)
+
+	for ep, r := range routersTCP {
+		if allowACMEByPass, ok := f.allowACMEByPass[ep]; ok && allowACMEByPass {
+			r.EnableACMETLSPassthrough()
+		}
+	}
 
 	// UDP
 	svcUDPManager := udpsvc.NewManager(rtConf)

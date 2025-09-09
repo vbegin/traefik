@@ -116,12 +116,8 @@ Each service has a load-balancer, even if there is only one server to forward tr
 #### Servers
 
 Servers declare a single instance of your program.
-The `url` option point to a specific instance.
 
-!!! info ""
-    Paths in the servers' `url` have no effect.
-    If you want the requests to be sent to a specific path on your servers,
-    configure your [`routers`](../routers/index.md) to use a corresponding [middleware](../../middlewares/overview.md) (e.g. the [AddPrefix](../../middlewares/http/addprefix.md) or [ReplacePath](../../middlewares/http/replacepath.md)) middlewares.
+The `url` option point to a specific instance.
 
 ??? example "A Service with One Server -- Using the [File Provider](../../providers/file.md)"
 
@@ -142,6 +138,48 @@ The `url` option point to a specific instance.
         [[http.services.my-service.loadBalancer.servers]]
           url = "http://private-ip-server-1/"
     ```
+
+The `preservePath` option allows to preserve the URL path.
+
+!!! info "Health Check"
+
+    When a [health check](#health-check) is configured for the server, the path is not preserved.
+
+??? example "A Service with One Server and PreservePath -- Using the [File Provider](../../providers/file.md)"
+
+    ```yaml tab="YAML"
+    ## Dynamic configuration
+    http:
+      services:
+        my-service:
+          loadBalancer:
+            servers:
+              - url: "http://private-ip-server-1/base"
+                preservePath: true
+    ```
+
+    ```toml tab="TOML"
+    ## Dynamic configuration
+    [http.services]
+      [http.services.my-service.loadBalancer]
+        [[http.services.my-service.loadBalancer.servers]]
+          url = "http://private-ip-server-1/base"
+          preservePath = true
+    ```
+
+#### Load Balancing Strategy
+
+The `strategy` option allows to choose the load balancing algorithm.
+
+Two load balancing algorithms are supported:
+
+- Weighed round-robin (wrr)
+- Power of two choices (p2c)
+- Highest Random Weight (hrw)
+
+##### WRR
+
+Weighed round-robin is the default strategy (and does not need to be specified).
 
 The `weight` option allows for weighted load balancing on the servers.
 
@@ -173,11 +211,11 @@ The `weight` option allows for weighted load balancing on the servers.
           weight = 1
     ```
 
-#### Load-balancing
+##### P2C
 
-For now, only round robin load balancing is supported:
+Power of two choices algorithm is a load balancing strategy that selects two servers at random and chooses the one with the least number of active requests.
 
-??? example "Load Balancing -- Using the [File Provider](../../providers/file.md)"
+??? example "P2C Load Balancing -- Using the [File Provider](../../providers/file.md)"
 
     ```yaml tab="YAML"
     ## Dynamic configuration
@@ -185,6 +223,39 @@ For now, only round robin load balancing is supported:
       services:
         my-service:
           loadBalancer:
+            strategy: "p2c"
+            servers:
+            - url: "http://private-ip-server-1/"
+            - url: "http://private-ip-server-2/"
+            - url: "http://private-ip-server-3/"
+    ```
+
+    ```toml tab="TOML"
+    ## Dynamic configuration
+    [http.services]
+      [http.services.my-service.loadBalancer]
+        strategy = "p2c"
+        [[http.services.my-service.loadBalancer.servers]]
+          url = "http://private-ip-server-1/"
+        [[http.services.my-service.loadBalancer.servers]]
+          url = "http://private-ip-server-2/"       
+        [[http.services.my-service.loadBalancer.servers]]
+          url = "http://private-ip-server-3/"
+    ```
+
+##### HRW
+
+HighestRandomWeight, also called RendezVous hashing allows to loadbalance clients in a pool of services or servers.
+
+??? example "Load Balancing HRW with-- Using the [File Provider](../../providers/file.md)"
+
+    ```yaml tab="YAML"
+    ## Dynamic configuration
+    http:
+      services:
+        my-service:
+          loadBalancer:
+            type: hrw
             servers:
             - url: "http://private-ip-server-1/"
             - url: "http://private-ip-server-2/"
@@ -231,6 +302,12 @@ On subsequent requests, to keep the session alive with the same server, the clie
 
     `SameSite` can be `none`, `lax`, `strict` or empty.
 
+!!! info "Domain"
+
+    The Domain attribute of a cookie specifies the domain for which the cookie is valid. 
+    
+    By setting the Domain attribute, the cookie can be shared across subdomains (for example, a cookie set for example.com would be accessible to www.example.com, api.example.com, etc.). This is particularly useful in cases where sticky sessions span multiple subdomains, ensuring that the session is maintained even when the client interacts with different parts of the infrastructure.
+
 ??? example "Adding Stickiness -- Using the [File Provider](../../providers/file.md)"
 
     ```yaml tab="YAML"
@@ -262,6 +339,7 @@ On subsequent requests, to keep the session alive with the same server, the clie
               cookie:
                 name: my_sticky_cookie_name
                 secure: true
+                domain: mysite.site
                 httpOnly: true
     ```
 
@@ -273,6 +351,7 @@ On subsequent requests, to keep the session alive with the same server, the clie
           name = "my_sticky_cookie_name"
           secure = true
           httpOnly = true
+          domain = "mysite.site"
           sameSite = "none"
     ```
 
@@ -365,7 +444,8 @@ Below are the available options for the health check mechanism:
 - `mode` (default: http), if defined to `grpc`, will use the gRPC health check protocol to probe the server.
 - `hostname` (optional), sets the value of `hostname` in the `Host` header of the health check request.
 - `port` (optional), replaces the server URL `port` for the health check endpoint.
-- `interval` (default: 30s), defines the frequency of the health check calls.
+- `interval` (default: 30s), defines the frequency of the health check calls for healthy targets.
+- `unhealthyInterval` (default: 30s), defines the frequency of the health check calls for unhealthy targets.  When not defined, it defaults to the `interval` value.
 - `timeout` (default: 5s), defines the maximum duration Traefik will wait for a health check request before considering the server unhealthy.
 - `headers` (optional), defines custom headers to be sent to the health check endpoint.
 - `followRedirects` (default: true), defines whether redirects should be followed during the health check calls.
@@ -374,7 +454,7 @@ Below are the available options for the health check mechanism:
 
 !!! info "Interval & Timeout Format"
 
-    Interval and timeout are to be given in a format understood by [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
+    Interval, UnhealthyInterval and Timeout are to be given in a format understood by [time.ParseDuration](https://golang.org/pkg/time/#ParseDuration).
 
 !!! info "Recovering Servers"
 
@@ -784,7 +864,7 @@ spec:
 
 #### `peerCertURI`
 
-_Optional, Default=false_
+_Optional, Default=""_
 
 `peerCertURI` defines the URI used to match against SAN URIs during the server's certificate verification.
 
@@ -1202,11 +1282,157 @@ http:
         url = "http://private-ip-server-2/"
 ```
 
+### Highest Random Weight (service)
+
+The HRW is able to load balance the requests between multiple services based on weights.
+
+This strategy is only available to load balance between [services](./index.md) and not between [servers](./index.md#servers).
+
+!!! info "Supported Providers"
+
+    This strategy can be defined currently with the [File](../../providers/file.md) or [IngressRoute](../../providers/kubernetes-crd.md) providers.
+
+```yaml tab="YAML"
+## Dynamic configuration
+http:
+  services:
+    app:
+      highestRandomWeight:
+        services:
+        - name: appv1
+          weight: 3
+        - name: appv2
+          weight: 1
+
+    appv1:
+      loadBalancer:
+        type: hrw
+        servers:
+        - url: "http://private-ip-server-1/"
+
+    appv2:
+      loadBalancer:
+        type: hrw
+        servers:
+        - url: "http://private-ip-server-2/"
+```
+
+```toml tab="TOML"
+## Dynamic configuration
+[http.services]
+  [http.services.app]
+    [[http.services.app.highestRandomWeight.services]]
+      name = "appv1"
+      weight = 3
+    [[http.services.app.highestRandomWeight.services]]
+      name = "appv2"
+      weight = 1
+
+  [http.services.appv1]
+    [http.services.appv1.loadBalancer]
+      type = "hrw"
+      [[http.services.appv1.loadBalancer.servers]]
+        url = "http://private-ip-server-1/"
+
+  [http.services.appv2]
+    [http.services.appv2.loadBalancer]
+      type = "hrw"
+      [[http.services.appv2.loadBalancer.servers]]
+        url = "http://private-ip-server-2/"
+```
+
+#### Health Check
+
+HealthCheck enables automatic self-healthcheck for this service, i.e. whenever
+one of its children is reported as down, this service becomes aware of it, and
+takes it into account (i.e. it ignores the down child) when running the
+load-balancing algorithm. In addition, if the parent of this service also has
+HealthCheck enabled, this service reports to its parent any status change.
+
+!!! info "All or nothing"
+
+    If HealthCheck is enabled for a given service, but any of its descendants does
+    not have it enabled, the creation of the service will fail.
+
+    HealthCheck on Weighted services can be defined currently only with the [File](../../providers/file.md) provider.
+
+```yaml tab="YAML"
+## Dynamic configuration
+http:
+  services:
+    app:
+      highestRandomWeight:
+        healthCheck: {}
+        services:
+        - name: appv1
+          weight: 3
+        - name: appv2
+          weight: 1
+
+    appv1:
+      loadBalancer:
+        type: hrw
+        healthCheck:
+          path: /status
+          interval: 10s
+          timeout: 3s
+        servers:
+        - url: "http://private-ip-server-1/"
+
+    appv2:
+      loadBalancer:
+        type: hrw
+        healthCheck:
+          path: /status
+          interval: 10s
+          timeout: 3s
+        servers:
+        - url: "http://private-ip-server-2/"
+```
+
+```toml tab="TOML"
+## Dynamic configuration
+[http.services]
+  [http.services.app]
+    [http.services.app.highestRandomWeight.healthCheck]
+    [[http.services.app.highestRandomWeight.services]]
+      name = "appv1"
+      weight = 3
+    [[http.services.app.highestRandomWeight.services]]
+      name = "appv2"
+      weight = 1
+
+  [http.services.appv1]
+    [http.services.appv1.loadBalancer]
+      type="hrw"
+      [http.services.appv1.loadBalancer.healthCheck]
+        path = "/health"
+        interval = "10s"
+        timeout = "3s"
+      [[http.services.appv1.loadBalancer.servers]]
+        url = "http://private-ip-server-1/"
+
+  [http.services.appv2]
+    [http.services.appv2.loadBalancer]
+      type="hrw"
+      [http.services.appv2.loadBalancer.healthCheck]
+        path = "/health"
+        interval = "10s"
+        timeout = "3s"
+      [[http.services.appv2.loadBalancer.servers]]
+        url = "http://private-ip-server-2/"
+```
+
 ### Mirroring (service)
 
 The mirroring is able to mirror requests sent to a service to other services.
 Please note that by default the whole request is buffered in memory while it is being mirrored.
 See the maxBodySize option in the example below for how to modify this behaviour.
+You can also omit the request body by setting the mirrorBody option to `false`.
+
+!!! warning "Default behavior of `percent`"
+
+    When configuring a `mirror` service, if the `percent` field is not set, it defaults to `0`, meaning **no traffic will be sent to the mirror**.
 
 !!! info "Supported Providers"
 
@@ -1219,12 +1445,17 @@ http:
     mirrored-api:
       mirroring:
         service: appv1
+        # mirrorBody defines whether the request body should be mirrored.
+        # Default value is true.
+        mirrorBody: false
         # maxBodySize is the maximum size allowed for the body of the request.
         # If the body is larger, the request is not mirrored.
         # Default value is -1, which means unlimited size.
         maxBodySize: 1024
         mirrors:
         - name: appv2
+          # Percent defines the percentage of requests that should be mirrored.
+          # Default value is 0, which means no traffic will be sent to the mirror.
           percent: 10
 
     appv1:
@@ -1248,6 +1479,9 @@ http:
       # If the body is larger, the request is not mirrored.
       # Default value is -1, which means unlimited size.
       maxBodySize = 1024
+      # mirrorBody defines whether the request body should be mirrored.
+      # Default value is true.
+      mirrorBody = false
     [[http.services.mirrored-api.mirroring.mirrors]]
       name = "appv2"
       percent = 10

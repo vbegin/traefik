@@ -1,7 +1,6 @@
 package ipwhitelist
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,12 +32,11 @@ func TestNewIPWhiteLister(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			whiteLister, err := New(context.Background(), next, test.whiteList, "traefikTest")
+			whiteLister, err := New(t.Context(), next, test.whiteList, "traefikTest")
 
 			if test.expectedError {
 				assert.Error(t, err)
@@ -76,12 +74,11 @@ func TestIPWhiteLister_ServeHTTP(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			whiteLister, err := New(context.Background(), next, test.whiteList, "traefikTest")
+			whiteLister, err := New(t.Context(), next, test.whiteList, "traefikTest")
 			require.NoError(t, err)
 
 			recorder := httptest.NewRecorder()

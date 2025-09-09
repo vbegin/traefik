@@ -263,8 +263,6 @@ func Test_addTCPRoute(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -373,7 +371,6 @@ func TestParseHostSNI(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -385,7 +382,7 @@ func TestParseHostSNI(t *testing.T) {
 				require.NoError(t, err, "%s: Error while parsing domain.", test.expression)
 			}
 
-			assert.EqualValues(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
+			assert.Equal(t, test.domain, domains, "%s: Error parsing domains from expression.", test.expression)
 		})
 	}
 }
@@ -436,8 +433,6 @@ func Test_Priority(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
-
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 
@@ -446,7 +441,6 @@ func Test_Priority(t *testing.T) {
 
 			matchedRule := ""
 			for rule, priority := range test.rules {
-				rule := rule
 				err := muxer.AddRoute(rule, "", priority, tcp.HandlerFunc(func(conn tcp.WriteCloser) {
 					matchedRule = rule
 				}))
@@ -488,7 +482,6 @@ func TestGetRulePriority(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		test := test
 		t.Run(test.desc, func(t *testing.T) {
 			t.Parallel()
 

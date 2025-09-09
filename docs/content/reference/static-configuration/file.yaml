@@ -35,6 +35,7 @@ tcpServersTransport:
 entryPoints:
   EntryPoint0:
     address: foobar
+    allowACMEByPass: true
     reusePort: true
     asDefault: true
     transport:
@@ -55,6 +56,9 @@ entryPoints:
     forwardedHeaders:
       insecure: true
       trustedIPs:
+        - foobar
+        - foobar
+      connection:
         - foobar
         - foobar
     http:
@@ -80,12 +84,19 @@ entryPoints:
               - foobar
               - foobar
       encodeQuerySemicolons: true
+      sanitizePath: true
+      maxHeaderBytes: 42
     http2:
       maxConcurrentStreams: 42
     http3:
       advertisedPort: 42
     udp:
       timeout: 42s
+    observability:
+      accessLogs: true
+      metrics: true
+      tracing: true
+      traceVerbosity: foobar
 providers:
   providersThrottleDuration: 42s
   docker:
@@ -96,6 +107,8 @@ providers:
     useBindPortIP: true
     watch: true
     defaultRule: foobar
+    username: foobar
+    password: foobar
     endpoint: foobar
     tls:
       ca: foobar
@@ -111,6 +124,8 @@ providers:
     useBindPortIP: true
     watch: true
     defaultRule: foobar
+    username: foobar
+    password: foobar
     endpoint: foobar
     tls:
       ca: foobar
@@ -141,6 +156,26 @@ providers:
     allowEmptyServices: true
     allowExternalNameServices: true
     disableIngressClassLookup: true
+    disableClusterScopeResources: true
+    nativeLBByDefault: true
+    strictPrefixMatching: true
+  kubernetesIngressNGINX:
+    endpoint: foobar
+    token: foobar
+    certAuthFilePath: foobar
+    throttleDuration: 42s
+    watchNamespace: foobar
+    watchNamespaceSelector: foobar
+    ingressClass: foobar
+    controllerClass: foobar
+    watchIngressWithoutClass: true
+    ingressClassByName: true
+    publishService: foobar
+    publishStatusAddress:
+      - foobar
+      - foobar
+    defaultBackendService: foobar
+    disableSvcExternalName: true
   kubernetesCRD:
     endpoint: foobar
     token: foobar
@@ -154,6 +189,8 @@ providers:
     ingressClass: foobar
     throttleDuration: 42s
     allowEmptyServices: true
+    nativeLBByDefault: true
+    disableClusterScopeResources: true
   kubernetesGateway:
     endpoint: foobar
     token: foobar
@@ -163,6 +200,14 @@ providers:
       - foobar
     labelSelector: foobar
     throttleDuration: 42s
+    experimentalChannel: true
+    statusAddress:
+      ip: foobar
+      hostname: foobar
+      service:
+        name: foobar
+        namespace: foobar
+    nativeLBByDefault: true
   rest:
     insecure: true
   consulCatalog:
@@ -192,6 +237,9 @@ providers:
     connectByDefault: true
     serviceName: foobar
     watch: true
+    strictChecks:
+      - foobar
+      - foobar
     namespaces:
       - foobar
       - foobar
@@ -212,6 +260,9 @@ providers:
     stale: true
     exposedByDefault: true
     refreshInterval: 42s
+    allowEmptyServices: true
+    watch: true
+    throttleDuration: 42s
     namespaces:
       - foobar
       - foobar
@@ -303,6 +354,7 @@ providers:
       name0: foobar
       name1: foobar
 api:
+  basePath: foobar
   insecure: true
   dashboard: true
   debug: true
@@ -376,6 +428,10 @@ metrics:
       - 42
       - 42
     pushInterval: 42s
+    serviceName: foobar
+    resourceAttributes:
+      name0: foobar
+      name1: foobar
 ping:
   entryPoint: foobar
   manualRouting: true
@@ -389,6 +445,32 @@ log:
   maxAge: 42
   maxBackups: 42
   compress: true
+  otlp:
+    serviceName: foobar
+    resourceAttributes:
+      name0: foobar
+      name1: foobar
+    grpc:
+      endpoint: foobar
+      insecure: true
+      tls:
+        ca: foobar
+        cert: foobar
+        key: foobar
+        insecureSkipVerify: true
+      headers:
+        name0: foobar
+        name1: foobar
+    http:
+      endpoint: foobar
+      tls:
+        ca: foobar
+        cert: foobar
+        key: foobar
+        insecureSkipVerify: true
+      headers:
+        name0: foobar
+        name1: foobar
 accessLog:
   filePath: foobar
   format: foobar
@@ -410,11 +492,46 @@ accessLog:
         name1: foobar
   bufferingSize: 42
   addInternals: true
+  otlp:
+    serviceName: foobar
+    resourceAttributes:
+      name0: foobar
+      name1: foobar
+    grpc:
+      endpoint: foobar
+      insecure: true
+      tls:
+        ca: foobar
+        cert: foobar
+        key: foobar
+        insecureSkipVerify: true
+      headers:
+        name0: foobar
+        name1: foobar
+    http:
+      endpoint: foobar
+      tls:
+        ca: foobar
+        cert: foobar
+        key: foobar
+        insecureSkipVerify: true
+      headers:
+        name0: foobar
+        name1: foobar
 tracing:
   serviceName: foobar
-  globalAttributes:
+  resourceAttributes:
     name0: foobar
     name1: foobar
+  capturedRequestHeaders:
+    - foobar
+    - foobar
+  capturedResponseHeaders:
+    - foobar
+    - foobar
+  safeQueryParams:
+    - foobar
+    - foobar
   sampleRate: 42
   addInternals: true
   otlp:
@@ -439,6 +556,9 @@ tracing:
       headers:
         name0: foobar
         name1: foobar
+  globalAttributes:
+    name0: foobar
+    name1: foobar
 hostResolver:
   cnameFlattening: true
   resolvConfig: foobar
@@ -449,21 +569,38 @@ certificatesResolvers:
       email: foobar
       caServer: foobar
       preferredChain: foobar
+      profile: foobar
+      emailAddresses:
+        - foobar
+        - foobar
       storage: foobar
       keyType: foobar
       eab:
         kid: foobar
         hmacEncoded: foobar
       certificatesDuration: 42
+      clientTimeout: 42s
+      clientResponseHeaderTimeout: 42s
+      caCertificates:
+        - foobar
+        - foobar
+      caSystemCertPool: true
+      caServerName: foobar
       dnsChallenge:
         provider: foobar
-        delayBeforeCheck: 42s
         resolvers:
           - foobar
           - foobar
+        propagation:
+          disableChecks: true
+          disableANSChecks: true
+          requireAllRNS: true
+          delayBeforeChecks: 42s
+        delayBeforeCheck: 42s
         disablePropagationCheck: true
       httpChallenge:
         entryPoint: foobar
+        delay: 42s
       tlsChallenge: {}
     tailscale: {}
   CertificateResolver1:
@@ -471,21 +608,38 @@ certificatesResolvers:
       email: foobar
       caServer: foobar
       preferredChain: foobar
+      profile: foobar
+      emailAddresses:
+        - foobar
+        - foobar
       storage: foobar
       keyType: foobar
       eab:
         kid: foobar
         hmacEncoded: foobar
       certificatesDuration: 42
+      clientTimeout: 42s
+      clientResponseHeaderTimeout: 42s
+      caCertificates:
+        - foobar
+        - foobar
+      caSystemCertPool: true
+      caServerName: foobar
       dnsChallenge:
         provider: foobar
-        delayBeforeCheck: 42s
         resolvers:
           - foobar
           - foobar
+        propagation:
+          disableChecks: true
+          disableANSChecks: true
+          requireAllRNS: true
+          delayBeforeChecks: 42s
+        delayBeforeCheck: 42s
         disablePropagationCheck: true
       httpChallenge:
         entryPoint: foobar
+        delay: 42s
       tlsChallenge: {}
     tailscale: {}
 experimental:
@@ -493,16 +647,57 @@ experimental:
     Descriptor0:
       moduleName: foobar
       version: foobar
+      settings:
+        envs:
+          - foobar
+          - foobar
+        mounts:
+          - foobar
+          - foobar
+        useUnsafe: true
     Descriptor1:
       moduleName: foobar
       version: foobar
+      settings:
+        envs:
+          - foobar
+          - foobar
+        mounts:
+          - foobar
+          - foobar
+        useUnsafe: true
   localPlugins:
     LocalDescriptor0:
       moduleName: foobar
+      settings:
+        envs:
+          - foobar
+          - foobar
+        mounts:
+          - foobar
+          - foobar
+        useUnsafe: true
     LocalDescriptor1:
       moduleName: foobar
+      settings:
+        envs:
+          - foobar
+          - foobar
+        mounts:
+          - foobar
+          - foobar
+        useUnsafe: true
+  abortOnPluginFailure: true
+  fastProxy:
+    debug: true
+  otlplogs: true
+  kubernetesIngressNGINX: true
   kubernetesGateway: true
 core:
   defaultRuleSyntax: foobar
 spiffe:
   workloadAPIAddr: foobar
+ocsp:
+  responderOverrides:
+    name0: foobar
+    name1: foobar
