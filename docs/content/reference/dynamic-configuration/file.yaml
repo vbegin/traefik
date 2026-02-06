@@ -437,6 +437,11 @@ http:
           keyFile: foobar
         - certFile: foobar
           keyFile: foobar
+      cipherSuites:
+        - foobar
+        - foobar
+      minVersion: foobar
+      maxVersion: foobar
       maxIdleConnsPerHost: 42
       forwardingTimeouts:
         dialTimeout: 42s
@@ -462,6 +467,11 @@ http:
           keyFile: foobar
         - certFile: foobar
           keyFile: foobar
+      cipherSuites:
+        - foobar
+        - foobar
+      minVersion: foobar
+      maxVersion: foobar
       maxIdleConnsPerHost: 42
       forwardingTimeouts:
         dialTimeout: 42s
@@ -529,14 +539,14 @@ tcp:
   services:
     TCPService01:
       loadBalancer:
-        proxyProtocol:
-          version: 42
         servers:
           - address: foobar
             tls: true
           - address: foobar
             tls: true
         serversTransport: foobar
+        proxyProtocol:
+          version: 42
         terminationDelay: 42
     TCPService02:
       weighted:
@@ -563,6 +573,8 @@ tcp:
     TCPServersTransport0:
       dialKeepAlive: 42s
       dialTimeout: 42s
+      proxyProtocol:
+        version: 42
       terminationDelay: 42s
       tls:
         serverName: foobar
@@ -584,6 +596,8 @@ tcp:
     TCPServersTransport1:
       dialKeepAlive: 42s
       dialTimeout: 42s
+      proxyProtocol:
+        version: 42
       terminationDelay: 42s
       tls:
         serverName: foobar

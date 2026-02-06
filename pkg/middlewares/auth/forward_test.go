@@ -17,9 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
+	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	"github.com/traefik/traefik/v3/pkg/proxy/httputil"
 	"github.com/traefik/traefik/v3/pkg/testhelpers"
-	"github.com/traefik/traefik/v3/pkg/tracing"
 	"github.com/vulcand/oxy/v2/forward"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
@@ -868,6 +868,91 @@ func TestForwardAuthPreserveRequestMethod(t *testing.T) {
 			assert.Equal(t, http.StatusOK, res.StatusCode)
 			assert.True(t, reqReachesAuthServer)
 			assert.True(t, reqReachesNextServer)
+		})
+	}
+}
+
+func TestForwardAuthAuthSigninURL(t *testing.T) {
+	testCases := []struct {
+		desc               string
+		authSigninURL      string
+		authServerStatus   int
+		expectedStatus     int
+		expectedLocation   string
+		nextShouldBeCalled bool
+	}{
+		{
+			desc:               "redirects to signin URL on 401",
+			authSigninURL:      "https://auth.example.com/login",
+			authServerStatus:   http.StatusUnauthorized,
+			expectedStatus:     http.StatusFound,
+			expectedLocation:   "https://auth.example.com/login",
+			nextShouldBeCalled: false,
+		},
+		{
+			desc:               "no redirect on 401 without signin URL",
+			authServerStatus:   http.StatusUnauthorized,
+			expectedStatus:     http.StatusUnauthorized,
+			nextShouldBeCalled: false,
+		},
+		{
+			desc:               "no redirect on other error statuses with signin URL",
+			authSigninURL:      "https://auth.example.com/login",
+			authServerStatus:   http.StatusForbidden,
+			expectedStatus:     http.StatusForbidden,
+			nextShouldBeCalled: false,
+		},
+		{
+			desc:               "no redirect on OK status with signin URL",
+			authSigninURL:      "https://auth.example.com/login",
+			authServerStatus:   http.StatusOK,
+			expectedStatus:     http.StatusOK,
+			nextShouldBeCalled: true,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.desc, func(t *testing.T) {
+			authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, http.StatusText(test.authServerStatus), test.authServerStatus)
+			}))
+			t.Cleanup(authServer.Close)
+
+			nextCalled := false
+			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				nextCalled = true
+			})
+
+			auth := dynamic.ForwardAuth{
+				Address:       authServer.URL,
+				AuthSigninURL: test.authSigninURL,
+			}
+			middleware, err := NewForward(t.Context(), next, auth, "authTest")
+			require.NoError(t, err)
+
+			ts := httptest.NewServer(middleware)
+			t.Cleanup(ts.Close)
+
+			client := &http.Client{
+				CheckRedirect: func(r *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}
+
+			req := testhelpers.MustNewRequest(http.MethodGet, ts.URL, nil)
+			res, err := client.Do(req)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedStatus, res.StatusCode)
+			assert.Equal(t, test.nextShouldBeCalled, nextCalled)
+
+			if test.expectedLocation != "" {
+				location, err := res.Location()
+				require.NoError(t, err)
+				assert.Equal(t, test.expectedLocation, location.String())
+			} else {
+				assert.Empty(t, res.Header.Get("Location"))
+			}
 		})
 	}
 }

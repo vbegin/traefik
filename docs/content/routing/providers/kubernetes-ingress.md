@@ -130,7 +130,7 @@ which in turn will create the resulting routers, services, handlers, etc.
           serviceAccountName: traefik-ingress-controller
           containers:
             - name: traefik
-              image: traefik:v3.5
+              image: traefik:v3.6
               args:
                 - --entryPoints.web.address=:80
                 - --providers.kubernetesingress
@@ -593,7 +593,7 @@ This way, any Ingress attached to this Entrypoint will have TLS termination by d
           serviceAccountName: traefik-ingress-controller
           containers:
             - name: traefik
-              image: traefik:v3.5
+              image: traefik:v3.6
               args:
                 - --entryPoints.websecure.address=:443
                 - --entryPoints.websecure.http.tls
@@ -786,7 +786,7 @@ For more options, please refer to the available [annotations](#on-ingress).
           serviceAccountName: traefik-ingress-controller
           containers:
             - name: traefik
-              image: traefik:v3.5
+              image: traefik:v3.6
               args:
                 - --entryPoints.websecure.address=:443
                 - --providers.kubernetesingress
@@ -960,4 +960,4 @@ This will allow users to create a "default router" that will match all unmatched
 
     To do this, use the `traefik.ingress.kubernetes.io/router.priority` annotation (as seen in [Annotations on Ingress](#on-ingress)) on your ingresses accordingly.
 
-{!traefik-for-business-applications.md!}
+{% include-markdown "includes/traefik-for-business-applications.md" %}

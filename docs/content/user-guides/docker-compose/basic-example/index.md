@@ -29,7 +29,7 @@ Create a `docker-compose.yml` file with the following content:
     services:
 
       traefik:
-        image: "traefik:v3.5"
+        image: "traefik:v3.6"
         ...
         networks:
           - traefiknet
@@ -131,4 +131,4 @@ whoami:
     - "traefik.http.routers.whoami.entrypoints=web"
 ```
 
-{!traefik-for-business-applications.md!}
+{% include-markdown "includes/traefik-for-business-applications.md" %}

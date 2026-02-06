@@ -5,6 +5,8 @@ import (
 	"time"
 
 	ptypes "github.com/traefik/paerser/types"
+	"github.com/traefik/traefik/dynamic/ext"
+	otypes "github.com/traefik/traefik/v3/pkg/observability/types"
 	traefiktls "github.com/traefik/traefik/v3/pkg/tls"
 	"github.com/traefik/traefik/v3/pkg/types"
 	"google.golang.org/grpc/codes"
@@ -32,6 +34,8 @@ const (
 
 // HTTPConfiguration contains all the HTTP configuration parameters.
 type HTTPConfiguration struct {
+	ext.HTTP `yaml:",inline"`
+
 	Routers           map[string]*Router           `json:"routers,omitempty" toml:"routers,omitempty" yaml:"routers,omitempty" export:"true"`
 	Services          map[string]*Service          `json:"services,omitempty" toml:"services,omitempty" yaml:"services,omitempty" export:"true"`
 	Middlewares       map[string]*Middleware       `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty" export:"true"`
@@ -43,16 +47,18 @@ type HTTPConfiguration struct {
 
 // Model holds model configuration.
 type Model struct {
-	Middlewares       []string                  `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty" export:"true"`
-	TLS               *RouterTLSConfig          `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
-	Observability     RouterObservabilityConfig `json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
-	DefaultRuleSyntax string                    `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
+	Middlewares                 []string                           `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty" export:"true"`
+	TLS                         *RouterTLSConfig                   `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
+	Observability               RouterObservabilityConfig          `json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
+	DeniedEncodedPathCharacters *RouterDeniedEncodedPathCharacters `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
+	DefaultRuleSyntax           string                             `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
 }
 
 // +k8s:deepcopy-gen=true
 
 // Service holds a service configuration (can only be of one type at the same time).
 type Service struct {
+	Middlewares         []string             `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty" export:"true"`
 	LoadBalancer        *ServersLoadBalancer `json:"loadBalancer,omitempty" toml:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty" export:"true"`
 	HighestRandomWeight *HighestRandomWeight `json:"highestRandomWeight,omitempty" toml:"highestRandomWeight,omitempty" yaml:"highestRandomWeight,omitempty" label:"-" export:"true"`
 	Weighted            *WeightedRoundRobin  `json:"weighted,omitempty" toml:"weighted,omitempty" yaml:"weighted,omitempty" label:"-" export:"true"`
@@ -60,20 +66,80 @@ type Service struct {
 	Failover            *Failover            `json:"failover,omitempty" toml:"failover,omitempty" yaml:"failover,omitempty" label:"-" export:"true"`
 }
 
+// Merge merges another Service into this one.
+// Returns true if the merge succeeds, false if configurations conflict.
+func (s *Service) Merge(other *Service) bool {
+	if s.LoadBalancer == nil || other.LoadBalancer == nil {
+		return reflect.DeepEqual(s, other)
+	}
+
+	return s.LoadBalancer.Merge(other.LoadBalancer)
+}
+
 // +k8s:deepcopy-gen=true
 
 // Router holds the router configuration.
 type Router struct {
+	ext.Router `yaml:",inline"`
+
 	EntryPoints []string `json:"entryPoints,omitempty" toml:"entryPoints,omitempty" yaml:"entryPoints,omitempty" export:"true"`
 	Middlewares []string `json:"middlewares,omitempty" toml:"middlewares,omitempty" yaml:"middlewares,omitempty" export:"true"`
 	Service     string   `json:"service,omitempty" toml:"service,omitempty" yaml:"service,omitempty" export:"true"`
 	Rule        string   `json:"rule,omitempty" toml:"rule,omitempty" yaml:"rule,omitempty"`
+	ParentRefs  []string `json:"parentRefs,omitempty" toml:"parentRefs,omitempty" yaml:"parentRefs,omitempty" label:"-" export:"true"`
 	// Deprecated: Please do not use this field and rewrite the router rules to use the v3 syntax.
-	RuleSyntax    string                     `json:"ruleSyntax,omitempty" toml:"ruleSyntax,omitempty" yaml:"ruleSyntax,omitempty" export:"true"`
-	Priority      int                        `json:"priority,omitempty" toml:"priority,omitempty,omitzero" yaml:"priority,omitempty" export:"true"`
-	TLS           *RouterTLSConfig           `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
-	Observability *RouterObservabilityConfig `json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
-	DefaultRule   bool                       `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+	RuleSyntax                  string                             `json:"ruleSyntax,omitempty" toml:"ruleSyntax,omitempty" yaml:"ruleSyntax,omitempty" export:"true"`
+	Priority                    int                                `json:"priority,omitempty" toml:"priority,omitempty,omitzero" yaml:"priority,omitempty" export:"true"`
+	TLS                         *RouterTLSConfig                   `json:"tls,omitempty" toml:"tls,omitempty" yaml:"tls,omitempty" label:"allowEmpty" file:"allowEmpty" kv:"allowEmpty" export:"true"`
+	Observability               *RouterObservabilityConfig         `json:"observability,omitempty" toml:"observability,omitempty" yaml:"observability,omitempty" export:"true"`
+	DefaultRule                 bool                               `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+	DeniedEncodedPathCharacters *RouterDeniedEncodedPathCharacters `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-"`
+}
+
+// +k8s:deepcopy-gen=true
+
+// RouterDeniedEncodedPathCharacters configures which encoded characters are allowed in the request path.
+type RouterDeniedEncodedPathCharacters struct {
+	AllowEncodedSlash         bool `description:"Defines whether requests with encoded slash characters in the path are allowed." json:"allowEncodedSlash,omitempty" toml:"allowEncodedSlash,omitempty" yaml:"allowEncodedSlash,omitempty" export:"true"`
+	AllowEncodedBackSlash     bool `description:"Defines whether requests with encoded back slash characters in the path are allowed." json:"allowEncodedBackSlash,omitempty" toml:"allowEncodedBackSlash,omitempty" yaml:"allowEncodedBackSlash,omitempty" export:"true"`
+	AllowEncodedNullCharacter bool `description:"Defines whether requests with encoded null characters in the path are allowed." json:"allowEncodedNullCharacter,omitempty" toml:"allowEncodedNullCharacter,omitempty" yaml:"allowEncodedNullCharacter,omitempty" export:"true"`
+	AllowEncodedSemicolon     bool `description:"Defines whether requests with encoded semicolon characters in the path are allowed." json:"allowEncodedSemicolon,omitempty" toml:"allowEncodedSemicolon,omitempty" yaml:"allowEncodedSemicolon,omitempty" export:"true"`
+	AllowEncodedPercent       bool `description:"Defines whether requests with encoded percent characters in the path are allowed." json:"allowEncodedPercent,omitempty" toml:"allowEncodedPercent,omitempty" yaml:"allowEncodedPercent,omitempty" export:"true"`
+	AllowEncodedQuestionMark  bool `description:"Defines whether requests with encoded question mark characters in the path are allowed." json:"allowEncodedQuestionMark,omitempty" toml:"allowEncodedQuestionMark,omitempty" yaml:"allowEncodedQuestionMark,omitempty" export:"true"`
+	AllowEncodedHash          bool `description:"Defines whether requests with encoded hash characters in the path are allowed." json:"allowEncodedHash,omitempty" toml:"allowEncodedHash,omitempty" yaml:"allowEncodedHash,omitempty" export:"true"`
+}
+
+// Map returns a map of unallowed encoded characters.
+func (r *RouterDeniedEncodedPathCharacters) Map() map[string]struct{} {
+	characters := make(map[string]struct{})
+
+	if !r.AllowEncodedSlash {
+		characters["%2F"] = struct{}{}
+		characters["%2f"] = struct{}{}
+	}
+	if !r.AllowEncodedBackSlash {
+		characters["%5C"] = struct{}{}
+		characters["%5c"] = struct{}{}
+	}
+	if !r.AllowEncodedNullCharacter {
+		characters["%00"] = struct{}{}
+	}
+	if !r.AllowEncodedSemicolon {
+		characters["%3B"] = struct{}{}
+		characters["%3b"] = struct{}{}
+	}
+	if !r.AllowEncodedPercent {
+		characters["%25"] = struct{}{}
+	}
+	if !r.AllowEncodedQuestionMark {
+		characters["%3F"] = struct{}{}
+		characters["%3f"] = struct{}{}
+	}
+	if !r.AllowEncodedHash {
+		characters["%23"] = struct{}{}
+	}
+
+	return characters
 }
 
 // +k8s:deepcopy-gen=true
@@ -98,12 +164,12 @@ type RouterObservabilityConfig struct {
 	// TraceVerbosity defines the verbosity level of the tracing for this router.
 	// +kubebuilder:validation:Enum=minimal;detailed
 	// +kubebuilder:default=minimal
-	TraceVerbosity types.TracingVerbosity `json:"traceVerbosity,omitempty" toml:"traceVerbosity,omitempty" yaml:"traceVerbosity,omitempty" export:"true"`
+	TraceVerbosity otypes.TracingVerbosity `json:"traceVerbosity,omitempty" toml:"traceVerbosity,omitempty" yaml:"traceVerbosity,omitempty" export:"true"`
 }
 
 // SetDefaults Default values for a RouterObservabilityConfig.
 func (r *RouterObservabilityConfig) SetDefaults() {
-	r.TraceVerbosity = types.MinimalVerbosity
+	r.TraceVerbosity = otypes.MinimalVerbosity
 }
 
 // +k8s:deepcopy-gen=true
@@ -176,12 +242,22 @@ type WRRService struct {
 	Name   string `json:"name,omitempty" toml:"name,omitempty" yaml:"name,omitempty" export:"true"`
 	Weight *int   `json:"weight,omitempty" toml:"weight,omitempty" yaml:"weight,omitempty" export:"true"`
 
+	// Headers defines the HTTP headers that should be added to the request when calling the service.
+	// This is required by the Knative implementation which expects specific headers to be sent.
+	Headers map[string]string `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+
 	// Status defines an HTTP status code that should be returned when calling the service.
 	// This is required by the Gateway API implementation which expects specific HTTP status to be returned.
 	Status *int `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
 	// GRPCStatus defines a GRPC status code that should be returned when calling the service.
 	// This is required by the Gateway API implementation which expects specific GRPC status to be returned.
 	GRPCStatus *GRPCStatus `json:"-" toml:"-" yaml:"-" label:"-" file:"-"`
+}
+
+// SetDefaults Default values for a WRRService.
+func (w *WRRService) SetDefaults() {
+	defaultWeight := 1
+	w.Weight = &defaultWeight
 }
 
 // +k8s:deepcopy-gen=true
@@ -194,12 +270,6 @@ type HRWService struct {
 
 // SetDefaults Default values for a HRWService.
 func (w *HRWService) SetDefaults() {
-	defaultWeight := 1
-	w.Weight = &defaultWeight
-}
-
-// SetDefaults Default values for a WRRService.
-func (w *WRRService) SetDefaults() {
 	defaultWeight := 1
 	w.Weight = &defaultWeight
 }
@@ -244,6 +314,10 @@ type Cookie struct {
 	// Domain defines the host to which the cookie will be sent.
 	// More info: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#domaindomain-value
 	Domain string `json:"domain,omitempty" toml:"domain,omitempty" yaml:"domain,omitempty"`
+
+	// Expires defines the number of seconds to add to the current time to calculate the expiration date of the cookie.
+	// This option is exposed only for the Ingress NGINX provider.
+	Expires int `json:"-" toml:"-" yaml:"-" label:"-" file:"-" kv:"-" export:"true"`
 }
 
 // SetDefaults set the default values for a Cookie.
@@ -259,8 +333,10 @@ const (
 	BalancerStrategyWRR BalancerStrategy = "wrr"
 	// BalancerStrategyP2C is the power of two choices strategy.
 	BalancerStrategyP2C BalancerStrategy = "p2c"
-	// BalancerStrategyHRW is the power of two choices strategy.
+	// BalancerStrategyHRW is the highest random weight strategy.
 	BalancerStrategyHRW BalancerStrategy = "hrw"
+	// BalancerStrategyLeastTime is the least-time strategy.
+	BalancerStrategyLeastTime BalancerStrategy = "leasttime"
 )
 
 // +k8s:deepcopy-gen=true
@@ -282,8 +358,39 @@ type ServersLoadBalancer struct {
 	ServersTransport   string                    `json:"serversTransport,omitempty" toml:"serversTransport,omitempty" yaml:"serversTransport,omitempty" export:"true"`
 }
 
-// Mergeable tells if the given service is mergeable.
-func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool {
+// Merge merges the other load balancer into this one.
+// Returns true if merge succeeded, false if configurations conflict.
+func (l *ServersLoadBalancer) Merge(other *ServersLoadBalancer) bool {
+	if !l.mergeable(other) {
+		return false
+	}
+
+	// Deduplicate and append servers.
+	uniq := make(map[string]struct{}, len(l.Servers))
+	for _, server := range l.Servers {
+		uniq[server.URL] = struct{}{}
+	}
+	for _, server := range other.Servers {
+		if _, ok := uniq[server.URL]; !ok {
+			l.Servers = append(l.Servers, server)
+		}
+	}
+
+	return true
+}
+
+// SetDefaults Default values for a ServersLoadBalancer.
+func (l *ServersLoadBalancer) SetDefaults() {
+	defaultPassHostHeader := DefaultPassHostHeader
+	l.PassHostHeader = &defaultPassHostHeader
+
+	l.Strategy = BalancerStrategyWRR
+	l.ResponseForwarding = &ResponseForwarding{}
+	l.ResponseForwarding.SetDefaults()
+}
+
+// mergeable tells if the given service is mergeable.
+func (l *ServersLoadBalancer) mergeable(loadBalancer *ServersLoadBalancer) bool {
 	savedServers := l.Servers
 	defer func() {
 		l.Servers = savedServers
@@ -297,16 +404,6 @@ func (l *ServersLoadBalancer) Mergeable(loadBalancer *ServersLoadBalancer) bool 
 	loadBalancer.Servers = nil
 
 	return reflect.DeepEqual(l, loadBalancer)
-}
-
-// SetDefaults Default values for a ServersLoadBalancer.
-func (l *ServersLoadBalancer) SetDefaults() {
-	defaultPassHostHeader := DefaultPassHostHeader
-	l.PassHostHeader = &defaultPassHostHeader
-
-	l.Strategy = BalancerStrategyWRR
-	l.ResponseForwarding = &ResponseForwarding{}
-	l.ResponseForwarding.SetDefaults()
 }
 
 // +k8s:deepcopy-gen=true
@@ -393,7 +490,10 @@ type ServersTransport struct {
 	InsecureSkipVerify  bool                    `description:"Disables SSL certificate verification." json:"insecureSkipVerify,omitempty" toml:"insecureSkipVerify,omitempty" yaml:"insecureSkipVerify,omitempty" export:"true"`
 	RootCAs             []types.FileOrContent   `description:"Defines a list of CA certificates used to validate server certificates." json:"rootCAs,omitempty" toml:"rootCAs,omitempty" yaml:"rootCAs,omitempty"`
 	Certificates        traefiktls.Certificates `description:"Defines a list of client certificates for mTLS." json:"certificates,omitempty" toml:"certificates,omitempty" yaml:"certificates,omitempty" export:"true"`
-	MaxIdleConnsPerHost int                     `description:"If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used" json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
+	CipherSuites        []string                `description:"Defines the cipher suites to use when contacting backend servers." json:"cipherSuites,omitempty" toml:"cipherSuites,omitempty" yaml:"cipherSuites,omitempty" export:"true"`
+	MinVersion          string                  `description:"Defines the minimum TLS version to use when contacting backend servers." json:"minVersion,omitempty" toml:"minVersion,omitempty" yaml:"minVersion,omitempty" export:"true"`
+	MaxVersion          string                  `description:"Defines the maximum TLS version to use when contacting backend servers." json:"maxVersion,omitempty" toml:"maxVersion,omitempty" yaml:"maxVersion,omitempty" export:"true"`
+	MaxIdleConnsPerHost int                     `description:"If non-zero, controls the maximum idle (keep-alive) to keep per-host. If zero, DefaultMaxIdleConnsPerHost is used. If negative, disables connection reuse." json:"maxIdleConnsPerHost,omitempty" toml:"maxIdleConnsPerHost,omitempty" yaml:"maxIdleConnsPerHost,omitempty" export:"true"`
 	ForwardingTimeouts  *ForwardingTimeouts     `description:"Defines the timeouts for requests forwarded to the backend servers." json:"forwardingTimeouts,omitempty" toml:"forwardingTimeouts,omitempty" yaml:"forwardingTimeouts,omitempty" export:"true"`
 	DisableHTTP2        bool                    `description:"Disables HTTP/2 for connections with backend servers." json:"disableHTTP2,omitempty" toml:"disableHTTP2,omitempty" yaml:"disableHTTP2,omitempty" export:"true"`
 	PeerCertURI         string                  `description:"Defines the URI used to match against SAN URI during the peer certificate verification." json:"peerCertURI,omitempty" toml:"peerCertURI,omitempty" yaml:"peerCertURI,omitempty" export:"true"`

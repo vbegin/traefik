@@ -23,8 +23,9 @@ import (
 
 // RouterFactory the factory of TCP/UDP routers.
 type RouterFactory struct {
-	entryPointsTCP  []string
-	entryPointsUDP  []string
+	entryPointsTCP []string
+	entryPointsUDP []string
+
 	allowACMEByPass map[string]bool
 
 	managerFactory *service.ManagerFactory
@@ -103,7 +104,11 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 
 	middlewaresBuilder := middleware.NewBuilder(rtConf.Middlewares, serviceManager, f.pluginBuilder)
 
+	serviceManager.SetMiddlewareChainBuilder(middlewaresBuilder)
+
 	routerManager := router.NewManager(rtConf, serviceManager, middlewaresBuilder, f.observabilityMgr, f.tlsManager, f.parser)
+
+	routerManager.ParseRouterTree()
 
 	handlersNonTLS := routerManager.BuildHandlers(ctx, f.entryPointsTCP, false)
 	handlersTLS := routerManager.BuildHandlers(ctx, f.entryPointsTCP, true)
@@ -123,6 +128,8 @@ func (f *RouterFactory) CreateRouters(rtConf *runtime.Configuration) (map[string
 			r.EnableACMETLSPassthrough()
 		}
 	}
+
+	svcTCPManager.LaunchHealthCheck(ctx)
 
 	// UDP
 	svcUDPManager := udpsvc.NewManager(rtConf)

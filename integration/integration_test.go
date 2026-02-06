@@ -37,12 +37,17 @@ import (
 
 var (
 	showLog                      = flag.Bool("tlog", false, "always show Traefik logs")
-	k8sConformance               = flag.Bool("k8sConformance", false, "run K8s Gateway API conformance test")
-	k8sConformanceRunTest        = flag.String("k8sConformanceRunTest", "", "run a specific K8s Gateway API conformance test")
-	k8sConformanceTraefikVersion = flag.String("k8sConformanceTraefikVersion", "dev", "specify the Traefik version for the K8s Gateway API conformance report")
+	gatewayAPIConformanceRunTest = flag.String("gatewayAPIConformanceRunTest", "", "runs a specific Gateway API conformance test")
+	traefikVersion               = flag.String("traefikVersion", "dev", "defines the Traefik version")
 )
 
-const tailscaleSecretFilePath = "tailscale.secret"
+const (
+	k3sImage                = "docker.io/rancher/k3s:v1.34.2-k3s1"
+	traefikImage            = "traefik/traefik:latest"
+	traefikDeployment       = "deployments/traefik"
+	traefikNamespace        = "traefik"
+	tailscaleSecretFilePath = "tailscale.secret"
+)
 
 type composeConfig struct {
 	Services map[string]composeService `yaml:"services"`
@@ -66,43 +71,10 @@ type composeDeploy struct {
 
 type BaseSuite struct {
 	suite.Suite
+
 	containers map[string]testcontainers.Container
 	network    *testcontainers.DockerNetwork
 	hostIP     string
-}
-
-func (s *BaseSuite) waitForTraefik(containerName string) {
-	time.Sleep(1 * time.Second)
-
-	// Wait for Traefik to turn ready.
-	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8080/api/rawdata", nil)
-	require.NoError(s.T(), err)
-
-	err = try.Request(req, 2*time.Second, try.StatusCodeIs(http.StatusOK), try.BodyContains(containerName))
-	require.NoError(s.T(), err)
-}
-
-func (s *BaseSuite) displayTraefikLogFile(path string) {
-	if s.T().Failed() {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			content, errRead := os.ReadFile(path)
-			// TODO TestName
-			// fmt.Printf("%s: Traefik logs: \n", c.TestName())
-			fmt.Print("Traefik logs: \n")
-			if errRead == nil {
-				fmt.Println(string(content))
-			} else {
-				fmt.Println(errRead)
-			}
-		} else {
-			// fmt.Printf("%s: No Traefik logs.\n", c.TestName())
-			fmt.Print("No Traefik logs.\n")
-		}
-		errRemove := os.Remove(path)
-		if errRemove != nil {
-			fmt.Println(errRemove)
-		}
-	}
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -404,7 +376,7 @@ func (s *BaseSuite) displayTraefikLog(output *bytes.Buffer) {
 	if output == nil || output.Len() == 0 {
 		log.Info().Msg("No Traefik logs.")
 	} else {
-		for _, line := range strings.Split(output.String(), "\n") {
+		for line := range strings.SplitSeq(output.String(), "\n") {
 			log.Info().Msg(line)
 		}
 	}
@@ -420,7 +392,7 @@ func (s *BaseSuite) getDockerHost() string {
 	return dockerHost
 }
 
-func (s *BaseSuite) adaptFile(path string, tempObjects interface{}) string {
+func (s *BaseSuite) adaptFile(path string, tempObjects any) string {
 	// Load file
 	tmpl, err := template.ParseFiles(path)
 	require.NoError(s.T(), err)
@@ -507,4 +479,38 @@ func (s *BaseSuite) composeExec(service string, args ...string) string {
 	require.NoError(s.T(), err)
 
 	return string(content)
+}
+
+func (s *BaseSuite) waitForTraefik(containerName string) {
+	time.Sleep(1 * time.Second)
+
+	// Wait for Traefik to turn ready.
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:8080/api/rawdata", nil)
+	require.NoError(s.T(), err)
+
+	err = try.Request(req, 2*time.Second, try.StatusCodeIs(http.StatusOK), try.BodyContains(containerName))
+	require.NoError(s.T(), err)
+}
+
+func (s *BaseSuite) displayTraefikLogFile(path string) {
+	if s.T().Failed() {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			content, errRead := os.ReadFile(path)
+			// TODO TestName
+			// fmt.Printf("%s: Traefik logs: \n", c.TestName())
+			fmt.Print("Traefik logs: \n")
+			if errRead == nil {
+				fmt.Println(string(content))
+			} else {
+				fmt.Println(errRead)
+			}
+		} else {
+			// fmt.Printf("%s: No Traefik logs.\n", c.TestName())
+			fmt.Print("No Traefik logs.\n")
+		}
+		errRemove := os.Remove(path)
+		if errRemove != nil {
+			fmt.Println(errRemove)
+		}
+	}
 }

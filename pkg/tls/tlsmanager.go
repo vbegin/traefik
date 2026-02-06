@@ -15,7 +15,7 @@ import (
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-acme/lego/v4/challenge/tlsalpn01"
 	"github.com/rs/zerolog/log"
-	"github.com/traefik/traefik/v3/pkg/logs"
+	"github.com/traefik/traefik/v3/pkg/observability/logs"
 	"github.com/traefik/traefik/v3/pkg/tls/generate"
 	"github.com/traefik/traefik/v3/pkg/types"
 )
@@ -333,6 +333,14 @@ func (m *Manager) GetServerCertificates() []*x509.Certificate {
 	return certificates
 }
 
+// GetStore gets the certificate store of a given name.
+func (m *Manager) GetStore(storeName string) *CertificateStore {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	return m.getStore(storeName)
+}
+
 // getStore returns the store found for storeName, or nil otherwise.
 func (m *Manager) getStore(storeName string) *CertificateStore {
 	st, ok := m.stores[storeName]
@@ -340,14 +348,6 @@ func (m *Manager) getStore(storeName string) *CertificateStore {
 		return nil
 	}
 	return st
-}
-
-// GetStore gets the certificate store of a given name.
-func (m *Manager) GetStore(storeName string) *CertificateStore {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	return m.getStore(storeName)
 }
 
 func (m *Manager) getDefaultCertificate(ctx context.Context, tlsStore Store, st *CertificateStore) (*CertificateData, error) {
@@ -460,15 +460,15 @@ func buildTLSConfig(tlsOption Options) (*tls.Config, error) {
 		}
 
 		switch clientAuthType {
-		case "NoClientCert":
+		case NoClientCert:
 			conf.ClientAuth = tls.NoClientCert
-		case "RequestClientCert":
+		case RequestClientCert:
 			conf.ClientAuth = tls.RequestClientCert
-		case "RequireAnyClientCert":
+		case RequireAnyClientCert:
 			conf.ClientAuth = tls.RequireAnyClientCert
-		case "VerifyClientCertIfGiven":
+		case VerifyClientCertIfGiven:
 			conf.ClientAuth = tls.VerifyClientCertIfGiven
-		case "RequireAndVerifyClientCert":
+		case RequireAndVerifyClientCert:
 			conf.ClientAuth = tls.RequireAndVerifyClientCert
 		default:
 			return nil, fmt.Errorf("unknown client auth type %q", clientAuthType)

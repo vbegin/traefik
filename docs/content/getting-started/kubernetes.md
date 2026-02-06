@@ -79,7 +79,10 @@ providers:
   kubernetesGateway:
     enabled: true
 gateway:
-  namespacePolicy: All
+  listeners:
+    web:
+      namespacePolicy:
+        from: All
 ```
 
 !!! info
@@ -106,7 +109,7 @@ helm install traefik traefik/traefik --wait \
   --set ingressRoute.dashboard.matchRule='Host(`dashboard.localhost`)' \
   --set ingressRoute.dashboard.entryPoints={web} \
   --set providers.kubernetesGateway.enabled=true \
-  --set gateway.namespacePolicy=All
+  --set gateway.listeners.web.namespacePolicy.from=All
 ```
 
 !!! info
@@ -328,4 +331,4 @@ That's it! You've successfully deployed Traefik and configured routing in a Kube
 - [Learn more about Kubernetes CRD provider](../reference/install-configuration/providers/kubernetes/kubernetes-crd.md)
 - [Learn more about Kubernetes Gateway API provider](../reference/install-configuration/providers/kubernetes/kubernetes-gateway.md)
 
-{!traefik-for-business-applications.md!}
+{% include-markdown "includes/traefik-for-business-applications.md" %}

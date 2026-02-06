@@ -387,6 +387,42 @@ func TestKeepAliveH2c(t *testing.T) {
 	require.Contains(t, err.Error(), "use of closed network connection")
 }
 
+func Test_denyFragment(t *testing.T) {
+	tests := []struct {
+		name       string
+		url        string
+		wantStatus int
+	}{
+		{
+			name:       "Rejects fragment character",
+			url:        "http://example.com/#",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "Allows without fragment",
+			url:        "http://example.com/",
+			wantStatus: http.StatusOK,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := denyFragment(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			req := httptest.NewRequest(http.MethodGet, test.url, nil)
+			res := httptest.NewRecorder()
+
+			handler.ServeHTTP(res, req)
+
+			assert.Equal(t, test.wantStatus, res.Code)
+		})
+	}
+}
+
 func TestSanitizePath(t *testing.T) {
 	tests := []struct {
 		path     string
@@ -511,7 +547,7 @@ func TestNormalizePath_malformedPercentEncoding(t *testing.T) {
 	}
 }
 
-// TestPathOperations tests the whole behavior of normalizePath, and sanitizePath combined through the use of the createHTTPServer func.
+// TestPathOperations tests the whole behavior of normalizePath, and sanitizePath combined through the use of the newHTTPServer func.
 // It aims to guarantee the server entrypoint handler is secure regarding a large variety of cases that could lead to path traversal attacks.
 func TestPathOperations(t *testing.T) {
 	// Create a listener for the server.
@@ -525,8 +561,14 @@ func TestPathOperations(t *testing.T) {
 	configuration := &static.EntryPoint{}
 	configuration.SetDefaults()
 
-	// Create the HTTP server using createHTTPServer.
-	server, err := createHTTPServer(t.Context(), ln, configuration, false, requestdecorator.New(nil))
+	// We need to allow some of the suspicious encoded characters to test the path operations in case they are authorized.
+	configuration.HTTP.EncodedCharacters = &static.EncodedCharacters{
+		AllowEncodedSlash:   true,
+		AllowEncodedPercent: true,
+	}
+
+	// Create the HTTP server using newHTTPServer.
+	server, err := newHTTPServer(t.Context(), ln, configuration, false, requestdecorator.New(nil))
 	require.NoError(t, err)
 
 	server.Switcher.UpdateHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -647,4 +689,35 @@ func TestPathOperations(t *testing.T) {
 			assert.Equal(t, test.expectedRaw, res.Header.Get("RawPath"))
 		})
 	}
+}
+
+func TestHTTP2Config(t *testing.T) {
+	expectedMaxConcurrentStreams := 42
+	expectedEncoderTableSize := 128
+	expectedDecoderTableSize := 256
+
+	// Create a listener for the server.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = ln.Close()
+	})
+
+	// Define the server configuration.
+	configuration := &static.EntryPoint{}
+	configuration.SetDefaults()
+	configuration.HTTP2.MaxConcurrentStreams = int32(expectedMaxConcurrentStreams)
+	configuration.HTTP2.MaxEncoderHeaderTableSize = int32(expectedEncoderTableSize)
+	configuration.HTTP2.MaxDecoderHeaderTableSize = int32(expectedDecoderTableSize)
+
+	// Create the HTTP server using newHTTPServer.
+	server, err := newHTTPServer(t.Context(), ln, configuration, false, requestdecorator.New(nil))
+	require.NoError(t, err)
+
+	// Get the underlying HTTP Server.
+	httpServer := server.Server.(*http.Server)
+
+	assert.Equal(t, expectedMaxConcurrentStreams, httpServer.HTTP2.MaxConcurrentStreams)
+	assert.Equal(t, expectedEncoderTableSize, httpServer.HTTP2.MaxEncoderHeaderTableSize)
+	assert.Equal(t, expectedDecoderTableSize, httpServer.HTTP2.MaxDecoderHeaderTableSize)
 }

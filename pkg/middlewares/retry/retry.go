@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"net"
 	"net/http"
@@ -15,9 +16,9 @@ import (
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/middlewares"
 	"github.com/traefik/traefik/v3/pkg/middlewares/observability"
-	"github.com/traefik/traefik/v3/pkg/tracing"
+	"github.com/traefik/traefik/v3/pkg/observability/tracing"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -249,10 +250,7 @@ func (r *responseWriter) WriteHeader(code int) {
 	// to write headers to the backend : we are not going to perform any further retry.
 	// So it is now safe to alter current response headers with headers collected during
 	// the latest try before writing headers to client.
-	headers := r.responseWriter.Header()
-	for header, value := range r.headers {
-		headers[header] = value
-	}
+	maps.Copy(r.responseWriter.Header(), r.headers)
 
 	r.responseWriter.WriteHeader(code)
 

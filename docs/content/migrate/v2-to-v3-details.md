@@ -5,7 +5,7 @@ description: "Configuration changes and their details to successfully migrate fr
 
 # Configuration Details for Migrating from Traefik v2 to v3
 
-## Static Configuration Changes
+## Install Configuration Changes
 
 ### SwarmMode
 
@@ -135,7 +135,7 @@ It is now unsupported and would prevent Traefik to start.
 ##### Remediation
 
 The `http3` option should be removed from the static configuration experimental section.
-To configure `http3`, please checkout the [entrypoint configuration documentation](../routing/entrypoints.md#http3_1).
+To configure `http3`, please checkout the [entrypoint configuration documentation](../reference/install-configuration/entrypoints.md#http3).
 
 ### Consul provider
 
@@ -619,7 +619,7 @@ Please take a look at the observability documentation for more information:
 In v3, the `ServiceURL` field is not an object anymore but a string representation.
 An update may be required if you index access logs.
 
-## Dynamic Configuration Changes
+## Routing Configuration Changes
 
 ### Router Rule Matchers
 
@@ -635,6 +635,10 @@ By default, the `defaultRuleSyntax` static option is automatically set to `v3`, 
 The `Headers` and `HeadersRegexp` matchers have been renamed to `Header` and `HeaderRegexp` respectively.
 
 `PathPrefix` no longer uses regular expressions to match path prefixes.
+
+`Path` and `PathPrefix` no longer support path parameter placeholders (e.g., `{id}`, `{name}`).
+Routes using placeholders like ``Path(`/route/{id}`)`` will not match in v3 syntax.
+Use `PathRegexp` instead for dynamic path segments.
 
 `QueryRegexp` has been introduced to match query values using a regular expression.
 
@@ -716,6 +720,40 @@ http:
     ruleSyntax = "v2"
 ```
 
+##### Migrate Path Placeholders to PathRegexp
+
+In v2, `Path` and `PathPrefix` supported path parameter placeholders like `{id}` for matching dynamic path segments.
+In v3, this is no longer supported and `PathRegexp` should be used instead.
+
+??? example "Migrating a route with path placeholders"
+
+    v2 syntax (no longer works in v3):
+
+    ```yaml
+    match: Host(`example.com`) && Path(`/products/{id}`)
+    ```
+
+    v3 syntax using `PathRegexp`:
+
+    ```yaml
+    match: Host(`example.com`) && PathRegexp(`^/products/[^/]+$`)
+    ```
+
+    For more complex patterns with multiple placeholders:
+
+    v2 syntax:
+
+    ```yaml
+    match: Host(`example.com`) && Path(`/users/{userId}/orders/{orderId}`)
+    ```
+
+    v3 syntax:
+
+    ```yaml
+    match: Host(`example.com`) && PathRegexp(`^/users/[^/]+/orders/[^/]+$`) ## matches any non-slash characters
+    match: Host(`example.com`) && PathRegexp(`^/users/[a-zA-Z0-9_-]+/orders/[a-zA-Z0-9_-]+$`) ## restricts to alphanumeric, hyphens, and underscores
+    ```
+
 ### IPWhiteList
 
 In v3, we renamed the `IPWhiteList` middleware to `IPAllowList` without changing anything to the configuration. 
@@ -730,7 +768,7 @@ In v3, we renamed the `IPWhiteList` middleware to `IPAllowList` without changing
 
 ### TCP LoadBalancer `terminationDelay` option
 
-The TCP LoadBalancer `terminationDelay` option has been removed.
+The TCP LoadBalancer `terminationDelay` option has been deprecated.
 This option can now be configured directly on the `TCPServersTransport` level, please take a look at this [documentation](../routing/services/index.md#terminationdelay)
 
 ### Kubernetes CRDs API Group `traefik.containo.us`

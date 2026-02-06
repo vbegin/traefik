@@ -21,6 +21,7 @@ import (
 
 type TracingSuite struct {
 	BaseSuite
+
 	whoamiIP        string
 	whoamiPort      int
 	tempoIP         string
@@ -110,7 +111,7 @@ func (s *TracingSuite) TestOpenTelemetryBasic_HTTP_router_minimalVerbosity() {
 			"batches.0.scopeSpans.0.spans.0.attributes.#(key=\"server.port\").value.intValue":                 "80",
 			"batches.0.scopeSpans.0.spans.0.attributes.#(key=\"http.response.status_code\").value.intValue":   "200",
 
-			"batches.0.scopeSpans.0.spans.1.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.1.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.1.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.1.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.1.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -159,7 +160,7 @@ func (s *TracingSuite) TestOpenTelemetryBasic_HTTP_entrypoint_minimalVerbosity()
 			"batches.0.scopeSpans.0.spans.0.attributes.#(key=\"server.port\").value.intValue":                 "80",
 			"batches.0.scopeSpans.0.spans.0.attributes.#(key=\"http.response.status_code\").value.intValue":   "200",
 
-			"batches.0.scopeSpans.0.spans.1.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.1.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.1.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.1.attributes.#(key=\"entry_point\").value.stringValue":            "web-minimal",
 			"batches.0.scopeSpans.0.spans.1.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -226,7 +227,7 @@ func (s *TracingSuite) TestOpenTelemetryBasic_HTTP() {
 			"batches.0.scopeSpans.0.spans.4.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.4.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.5.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.5.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.5.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.5.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.5.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -356,7 +357,7 @@ func (s *TracingSuite) TestOpenTelemetryRateLimit() {
 			"batches.0.scopeSpans.0.spans.2.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.2.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.3.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.3.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.3.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.3.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.3.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -404,7 +405,7 @@ func (s *TracingSuite) TestOpenTelemetryRateLimit() {
 			"batches.0.scopeSpans.0.spans.5.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.5.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.6.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.6.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.6.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.6.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.6.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -527,7 +528,7 @@ func (s *TracingSuite) TestOpenTelemetryRetry() {
 			"batches.0.scopeSpans.0.spans.13.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.13.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.14.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.14.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.14.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.14.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.14.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -580,7 +581,7 @@ func (s *TracingSuite) TestOpenTelemetryAuth() {
 			"batches.0.scopeSpans.0.spans.2.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.2.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.3.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.3.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.3.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.3.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.3.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -637,7 +638,7 @@ func (s *TracingSuite) TestOpenTelemetryAuthWithRetry() {
 			"batches.0.scopeSpans.0.spans.3.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.3.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.4.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.4.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.4.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.4.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.4.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
@@ -706,7 +707,7 @@ func (s *TracingSuite) TestOpenTelemetrySafeURL() {
 			"batches.0.scopeSpans.0.spans.5.kind": "SPAN_KIND_INTERNAL",
 			"batches.0.scopeSpans.0.spans.5.attributes.#(key=\"traefik.middleware.name\").value.stringValue": "metrics-entrypoint",
 
-			"batches.0.scopeSpans.0.spans.6.name":                                                           "EntryPoint",
+			"batches.0.scopeSpans.0.spans.6.name":                                                           "GET",
 			"batches.0.scopeSpans.0.spans.6.kind":                                                           "SPAN_KIND_SERVER",
 			"batches.0.scopeSpans.0.spans.6.attributes.#(key=\"entry_point\").value.stringValue":            "web",
 			"batches.0.scopeSpans.0.spans.6.attributes.#(key=\"http.request.method\").value.stringValue":    "GET",
